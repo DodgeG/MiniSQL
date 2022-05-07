@@ -12,7 +12,9 @@
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id, int max_size) {
-
+  page_id_ = page_id;
+  parent_page_id_ = parent_id;
+  max_size_ = max_size;
 }
 /*
  * Helper method to get/set the key associated with input "index"(a.k.a
