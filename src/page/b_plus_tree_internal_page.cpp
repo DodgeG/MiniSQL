@@ -12,9 +12,10 @@
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id, int max_size) {
-  page_id_ = page_id;
-  parent_page_id_ = parent_id;
-  max_size_ = max_size;
+  SetPageId(page_id);
+  SetParentPageId(parent_id);
+  SetPageType(IndexPageType::INTERNAL_PAGE);
+  SetMaxSize(max_size);
 }
 /*
  * Helper method to get/set the key associated with input "index"(a.k.a
@@ -23,13 +24,15 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id
 INDEX_TEMPLATE_ARGUMENTS
 KeyType B_PLUS_TREE_INTERNAL_PAGE_TYPE::KeyAt(int index) const {
   // replace with your own code
-  KeyType key{};
-  return key;
+  if(index>=0&&index<GetSize())
+    return array[index].first;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) {
 
+  if(index>=0&&index<GetSize())
+    array[index].first = Key;
 }
 
 /*
@@ -38,7 +41,11 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) {
  */
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueIndex(const ValueType &value) const {
-  return 0;
+  for(int i=0;i<GetSize();i++){
+    if(array[i].second == value) return i;
+  }
+
+  return i;
 }
 
 /*
@@ -48,8 +55,8 @@ int B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueIndex(const ValueType &value) const {
 INDEX_TEMPLATE_ARGUMENTS
 ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const {
   // replace with your own code
-  ValueType val{};
-  return val;
+  if(index >=0 && index < GetSize())
+    return array[index].second;
 }
 
 /*****************************************************************************
@@ -63,8 +70,15 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const {
 INDEX_TEMPLATE_ARGUMENTS
 ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyComparator &comparator) const {
   // replace with your own code
-  ValueType val{};
-  return val;
+  int lim = GetSize();
+  if(KeyComparator(key,array[1].first)<0)
+    return array[0].second;
+  if(KeyComparator(key,array[lim-1].first)>0)
+    return array[lim-1].second;
+  
+  for(int i=1;i<lim;i++)
+    if(KeyComparator(key,array[i].first) == 0)
+      return array[i].second;
 }
 
 /*****************************************************************************
@@ -79,6 +93,10 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyCo
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::PopulateNewRoot(const ValueType &old_value, const KeyType &new_key,
                                                      const ValueType &new_value) {
+  array[0].second = old_value;
+  array[1].first = new_key;
+  array[1].second = new_value;
+  IncreaseSize();
 
 }
 
@@ -90,7 +108,18 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::PopulateNewRoot(const ValueType &old_value,
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertNodeAfter(const ValueType &old_value, const KeyType &new_key,
                                                     const ValueType &new_value) {
-  return 0;
+  int lim = GetSize();
+  for(i=0;i<lim;i++){
+    if(array[i].second == old_value)
+      break;
+  }
+  for(int j = lim-1;j>i+1;j--){
+    array[j] = array[j-1];
+  }
+  array[i+1].first = new_key;
+  array[i+1].second = new_value;
+
+  return GetSize();
 }
 
 /*****************************************************************************
@@ -102,6 +131,10 @@ int B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertNodeAfter(const ValueType &old_value, 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveHalfTo(BPlusTreeInternalPage *recipient,
                                                 BufferPoolManager *buffer_pool_manager) {
+  auto half = (GetSize() + 1)/2;
+  recipient->CopyNFrom(array + GetSize() - half, half, buffer_pool_manager);
+
+  IncreaseSize(-1*half);
 
 }
 
@@ -111,6 +144,18 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveHalfTo(BPlusTreeInternalPage *recipient
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyNFrom(MappingType *items, int size, BufferPoolManager *buffer_pool_manager) {
+
+  for(int i=0;i<size;i++)
+    array[i] = item[i];
+  
+  for (int i=0; i<size;i++) {
+    auto *page = buffer_pool_manager->FetchPage(ValueAt(i));
+
+    auto child = reinterpret_cast<BPlusTreePage *>(page->GetData());  //强制类型转换
+    child->SetParentPageId(GetPageId());
+
+    buffer_pool_manager->UnpinPage(child->GetPageId(), true);
+  }
 
 }
 
@@ -125,6 +170,13 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyNFrom(MappingType *items, int size, Buf
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(int index) {
 
+  if(index<0||index>=GetSize())
+    cout<<"Error";
+
+  for(int i=index;i<GetSize()-1;i++)
+    array[i] = array[i+1];
+  
+  IncreaseSize(-1);
 }
 
 /*
@@ -152,6 +204,16 @@ INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient, const KeyType &middle_key,
                                                BufferPoolManager *buffer_pool_manager) {
 
+  auto *page = buffer_pool_manager->FetchPage(GetParentPageId()); //得到父页
+  auto *parent = reinterpret_cast<BPlusTreeInternalPage *>(page->GetData());  //获取父页数据并将其填充到类中
+
+  //TODO:Middle Key
+  buffer_pool_manager->UnpinPage(parent->GetPageId(),true);
+
+  recipient->CopyNFrom(array,GetSize(),buffer_pool_manager);
+
+
+
 }
 
 /*****************************************************************************
@@ -168,7 +230,8 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient,
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveFirstToEndOf(BPlusTreeInternalPage *recipient, const KeyType &middle_key,
                                                       BufferPoolManager *buffer_pool_manager) {
-
+  
+  
 }
 
 /* Append an entry at the end.
@@ -178,6 +241,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveFirstToEndOf(BPlusTreeInternalPage *rec
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyLastFrom(const MappingType &pair, BufferPoolManager *buffer_pool_manager) {
 
+  array[GetSize()] = 
 }
 
 /*
