@@ -211,7 +211,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient,
   auto *page = buffer_pool_manager->FetchPage(GetParentPageId()); //得到父页
   auto *parent = reinterpret_cast<BPlusTreeInternalPage *>(page->GetData());  //获取父页数据并将其填充到类中
 
-  parent->array_[0].first = middle_key; //为了使第0个指针可以移入目标页
+  array_[0].first = middle_key; //为了使第0个指针可以移入目标页
 
   buffer_pool_manager->UnpinPage(parent->GetPageId(),true);
 
