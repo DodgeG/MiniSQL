@@ -344,11 +344,13 @@ bool BPLUSTREE_TYPE::Coalesce(N *neighbor_node, N *node,
     auto *Node = reinterpret_cast<BPlusTreeLeafPage<KeyType,ValueType,KeyComparator> *>(node);
     auto *Neighbor = reinterpret_cast<BPlusTreeLeafPage<KeyType,ValueType,KeyComparator> *>(neighbor_node);
     Node->MoveAllTo(Neighbor);
+    buffer_pool_manager_->DeletePage(Neighbor->GetPageId());
   }
   else{
     auto *Node = reinterpret_cast<BPlusTreeInternalPage<KeyType,page_id_t,KeyComparator> *>(node);
     auto *Neighbor = reinterpret_cast<BPlusTreeInternalPage<KeyType,page_id_t,KeyComparator> *>(neighbor_node);
     Node->MoveAllTo(Neighbor,middle_key,buffer_pool_manager_);
+    buffer_pool_manager_->DeletePage(Neighbor->GetPageId());
   }
 
   parent->Remove(index);
