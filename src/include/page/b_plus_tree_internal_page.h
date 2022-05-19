@@ -30,6 +30,8 @@ public:
 
   void SetKeyAt(int index, const KeyType &key);
 
+  void SetValueAt(int index, const ValueType &value);
+
   int ValueIndex(const ValueType &value) const;
 
   ValueType ValueAt(int index) const;

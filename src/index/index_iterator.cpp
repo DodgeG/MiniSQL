@@ -2,30 +2,62 @@
 #include "index/generic_key.h"
 #include "index/index_iterator.h"
 
-INDEX_TEMPLATE_ARGUMENTS INDEXITERATOR_TYPE::IndexIterator() {
+INDEX_TEMPLATE_ARGUMENTS INDEXITERATOR_TYPE::IndexIterator(BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *leaf,int index,BufferPoolManager *buff_pool_manager) {
+
+  leaf_ = leaf;
+  index_ = index;
+  buff_pool_manager_ = buff_pool_manager;
 
 }
 
 INDEX_TEMPLATE_ARGUMENTS INDEXITERATOR_TYPE::~IndexIterator() {
 
+  buff_pool_manager_->UnpinPage(leaf_->GetPageId(),false);
+
 }
 
 INDEX_TEMPLATE_ARGUMENTS const MappingType &INDEXITERATOR_TYPE::operator*() {
-  ASSERT(false, "Not implemented yet.");
+
+  return leaf_->GetItem(index_);
+
 }
 
 INDEX_TEMPLATE_ARGUMENTS INDEXITERATOR_TYPE &INDEXITERATOR_TYPE::operator++() {
-  ASSERT(false, "Not implemented yet.");
+
+  if(index_ == leaf_->GetMaxSize() - 1){
+    page_id_t next_id = leaf_->GetNextPageId();
+    buff_pool_manager_->UnpinPage(leaf_->GetPageId(),false);
+    if(next_id != INVALID_PAGE_ID){
+      auto *page = buff_pool_manager_->FetchPage(next_id);
+      if(page != nullptr){
+        auto next = reinterpret_cast<BPlusTreeLeafPage<KeyType,ValueType,KeyComparator> *>(page->GetData());
+        index_ = 0;
+        leaf_ = next;
+      }
+    }
+  }else{
+    index_++;
+  }
+  return *this;
+  //ASSERT(false, "Not implemented yet.");
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 bool INDEXITERATOR_TYPE::operator==(const IndexIterator &itr) const {
-  return false;
+
+  if(leaf_ == itr.leaf_ && index_ == itr.index_)
+    return true;
+  else 
+    return false;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 bool INDEXITERATOR_TYPE::operator!=(const IndexIterator &itr) const {
-  return false;
+  
+  if(leaf_ != itr.leaf_ || index_ !=itr.index_)
+    return true;
+  else
+    return false;
 }
 
 template
