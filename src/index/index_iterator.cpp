@@ -12,7 +12,7 @@ INDEX_TEMPLATE_ARGUMENTS INDEXITERATOR_TYPE::IndexIterator(BPlusTreeLeafPage<Key
 
 INDEX_TEMPLATE_ARGUMENTS INDEXITERATOR_TYPE::~IndexIterator() {
 
-  buff_pool_manager_->UnpinPage(leaf->GetPageId(),false);
+  buff_pool_manager_->UnpinPage(leaf_->GetPageId(),false);
 
 }
 
@@ -24,9 +24,9 @@ INDEX_TEMPLATE_ARGUMENTS const MappingType &INDEXITERATOR_TYPE::operator*() {
 
 INDEX_TEMPLATE_ARGUMENTS INDEXITERATOR_TYPE &INDEXITERATOR_TYPE::operator++() {
 
-  if(index_ == leaf->GetMaxSize() - 1){
-    page_id_t next_id = leaf->GetNextPageId();
-    buff_pool_manager_->UnpinPage(leaf->GetPageId(),false);
+  if(index_ == leaf_->GetMaxSize() - 1){
+    page_id_t next_id = leaf_->GetNextPageId();
+    buff_pool_manager_->UnpinPage(leaf_->GetPageId(),false);
     if(next_id != INVALID_PAGE_ID){
       auto *page = buff_pool_manager_->FetchPage(next_id);
       if(page != nullptr){
