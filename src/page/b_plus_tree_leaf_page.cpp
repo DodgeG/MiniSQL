@@ -162,7 +162,7 @@ int B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveAndDeleteRecord(const KeyType &key, const 
       IncreaseSize(-1);
     }
   }
-  return 0;
+  return GetSize();
 }
 
 /*****************************************************************************
