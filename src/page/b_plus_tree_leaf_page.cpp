@@ -231,6 +231,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyFirstFrom(const MappingType &item) {
   for(int i=GetSize();i>0;i--)
     array_[i] = array_[i-1];
   
+  IncreaseSize(1);
   array_[0] = item;
 
 }
