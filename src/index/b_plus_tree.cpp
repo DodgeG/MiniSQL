@@ -38,11 +38,12 @@ bool BPLUSTREE_TYPE::IsEmpty() const {
  */
 INDEX_TEMPLATE_ARGUMENTS
 bool BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> &result, Transaction *transaction) {
-  if (isEmpty()) return false;
+  if (IsEmpty()) return false;
 
-  auto *leaf = FindLeafPage(key, false);
-  if (leaf != NULL) {
+  auto *leaf_page = FindLeafPage(key, false);
+  if (leaf_page != NULL) {
     ValueType tmp;
+    auto leaf = reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *>(leaf_page->GetData());
     if (leaf->Lookup(key, tmp, comparator_)) {
       result.push_back(value);
       return true;
@@ -87,7 +88,7 @@ void BPLUSTREE_TYPE::StartNewTree(const KeyType &key, const ValueType &value) {
   UpdateRootPageId(true);
   root->Init(root_page_id_, INVALID_PAGE_ID);
   root->Insert(key, value, comparator_);
-  buffer_pool_manager_->UnpinPage(root->GetPageId());
+  //buffer_pool_manager_->UnpinPage(root->GetPageId());
 }
 
 /*
@@ -100,28 +101,31 @@ void BPLUSTREE_TYPE::StartNewTree(const KeyType &key, const ValueType &value) {
  */
 INDEX_TEMPLATE_ARGUMENTS
 bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction) {
-  auto *leaf = FindLeafPage(key);
+  auto *leaf_page = FindLeafPage(key);
   ValueType tmp;
-  if (leaf == nullptr)  //没有复合插入条件的叶节点
-    return false;
-  else if (leaf->Lookup(key, tmp, comparator_))  //在得到的叶节点中查找是否已存在该节点
+  if (leaf_page == nullptr)  //没有复合插入条件的叶节点
     return false;
   else {
-    //若结点未满，直接插入
-    if (leaf->GetSize() < leaf->GetMaxSize()) {
-      leaf->Insert(key, value, comparator_);
-    } else {  //若结点已满，分裂出一个新节点
-      auto *new_leaf = Spilt(leaf);
-      //根据新叶节点的首元素和待插入元素的大小关系，决定要插入哪一个叶节点
-      if (key, new_leaf->KeyAt(0) < 0)
+    auto leaf = reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *>(leaf_page->GetData());
+    if (leaf->Lookup(key, tmp, comparator_))  //在得到的叶节点中查找是否已存在该节点
+      return false;
+    else {
+      //若结点未满，直接插入
+      if (leaf->GetSize() < leaf->GetMaxSize()) {
         leaf->Insert(key, value, comparator_);
-      else
-        new_leaf->Insert(key, value, comparator_);
-      //新的叶结点中含有原叶节点的后一半元素，因此按如下方式更新两个节点的信息
-      new_leaf->SetNextPageId(leaf->GetNextPageId());
-      leaf->SetNextPageId(new_leaf->GetPageId());
-      //将分裂键递归上移
-      InsertIntoParent(leaf, new_leaf->KeyAt(0), new_leaf);
+      } else {  //若结点已满，分裂出一个新节点
+        auto *new_leaf = Split(leaf);
+        //根据新叶节点的首元素和待插入元素的大小关系，决定要插入哪一个叶节点
+        if (key, new_leaf->KeyAt(0) < 0)
+          leaf->Insert(key, value, comparator_);
+        else
+          new_leaf->Insert(key, value, comparator_);
+        //新的叶结点中含有原叶节点的后一半元素，因此按如下方式更新两个节点的信息
+        new_leaf->SetNextPageId(leaf->GetNextPageId());
+        leaf->SetNextPageId(new_leaf->GetPageId());
+        //将分裂键递归上移
+        InsertIntoParent(leaf, new_leaf->KeyAt(0), new_leaf);
+      }
     }
   }
 
@@ -180,21 +184,22 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
   } else {
     auto *page = buffer_pool_manager_->FetchPage(old_node->GetPageId());
     if (page != NULL) {
-      auto parent = reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *>(page->GetData());
+      auto *parent = reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *>(page->GetData());
       if (parent->GetSize() < parent->GetMaxSize()) {
         parent->InsertNodeAfter(old_node->GetPageId(), key, new_node->GetPageId());
         new_node->SetParentPageId(parent->GetPageId());
       } else {
-        MappingType tmp = {parent->KeyAt(0), parent->ValueAt(0)};  //保存最左侧的指针
+        auto tmp_key = parent->KeyAt(0);  //保存最左侧的指针
+        auto tmp_value = parent->ValueAt(0);
 
-        for (int i = 0; i < GetSize() - 1; i++) {  //将parent中的元素整体左移
+        for (int i = 0; i <parent->GetSize() - 1; i++) {  //将parent中的元素整体左移
           parent->SetValueAt(i, parent->ValueAt(i + 1));
           parent->SetKeyAt(i, parent->KeyAt(i + 1));
         }
 
         parent->SetSize(parent->GetSize() - 1);  //左移后parent中元素数量减少
 
-        parent->Insert(old_node->GetPageId(), key, new_node->GetPageId());  //在parent中插入新key
+        parent->InsertNodeAfter(old_node->GetPageId(), key, new_node->GetPageId());  //在parent中插入新key
         auto *new = Spilt(parent);                                          //分裂parent
 
         parent->SetSize(parent->GetSize() + 1);         //右移parent前容量+1
@@ -202,8 +207,8 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
           parent->SetKeyAt(i, parent->KeyAt(i - 1));
           parent->SetValueAt(i, parent->ValueAt(i - 1));
         }
-        parent->SetKeyAt(0) = tmp.first;  //恢复第一个pair
-        parent->SetValueAt(0) = tmp.second;
+        parent->SetKeyAt(0, tmp_key);  //恢复第一个pair
+        parent->SetValueAt(0, tmp_value);
 
         for (int i = 0; i < new->GetSize() - 1; i++) {  //新建的结点整体左移
           new->SetKeyAt(i, new->KeyAt(i + 1));
@@ -232,11 +237,12 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
  */
 INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
-  if (isEmpty()) {
+  if (IsEmpty()) {
     return;
   }
 
-  auto *leaf = FindLeafPage(key, false);
+  auto *leaf_page = FindLeafPage(key, false);
+  auto *leaf = reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *>(leaf_page->GetData());
   int tmp = leaf->GetSize();
   if (leaf->RemoveAndDeleteRecord(key, comparator_) < tmp)  //叶节点中存在该key值
     CoalesceOrRedistribute(leaf);
@@ -254,6 +260,8 @@ template <typename N>
 bool BPLUSTREE_TYPE::CoalesceOrRedistribute(N *node, Transaction *transaction) {
   if (node->IsRootPage()) return AdjustRoot(node);
 
+  node = reinterpret_cast<BPlusTreeInternalPage<KeyType,page_id_t,KeyComparator> *>(node);
+
   if (node->IsLeafPage()) {
     if (node->GetSize() >= node->GetMinSize()) {
       return false;
@@ -265,7 +273,8 @@ bool BPLUSTREE_TYPE::CoalesceOrRedistribute(N *node, Transaction *transaction) {
   }
 
   auto *page = buffer_pool_manager_->FetchPage(node->GetParentPageId());
-  auto parent = reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *>(page->GetData());  //获取父节点
+  auto *parent =
+      reinterpret_cast<BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *>(page->GetData());  //获取父节点
   int index = parent->ValueIndex(node->GetPageId());
 
   int sibling_id;
@@ -279,21 +288,19 @@ bool BPLUSTREE_TYPE::CoalesceOrRedistribute(N *node, Transaction *transaction) {
   auto sibling = reinterpret_cast<N *>(page->GetData());
 
   if (sibling->GetSize() + node->GetSize() > node->GetMaxSize()) {
-
-    if(index == 0){   //sibling是node的下一个结点
-      Redistribute(sibling,node,0);
-    }else{  //sibling是node的上一个结点
-      Redistribute(sibling,node,1);
+    if (index == 0) {  // sibling是node的下一个结点
+      Redistribute(sibling, node, 0);
+    } else {  // sibling是node的上一个结点
+      Redistribute(sibling, node, 1);
     }
     buffer_pool_manager_->UnpinPage(parent->GetPageId(), true);
     return false;
   }
 
-  bool ret;
   if (index == 0) {  //因为MoveFirstToEndOf和MoveLastToFrontOf都是从前一个移动到后一个，因此sibling为下页时需要换位考虑
     Coalesce<N>(node, sibling, parent, 1);
     buffer_pool_manager_->UnpinPage(parent->GetPageId(), true);
-    return false; //换位后，被删除的是sibling，因此返回false
+    return false;  //换位后，被删除的是sibling，因此返回false
   } else {
     Coalesce<N>(sibling, node, parent, index);
     buffer_pool_manager_->UnpinPage(parent->GetPageId(), true);
@@ -314,16 +321,21 @@ bool BPLUSTREE_TYPE::CoalesceOrRedistribute(N *node, Transaction *transaction) {
  */
 INDEX_TEMPLATE_ARGUMENTS
 template <typename N>
-bool BPLUSTREE_TYPE::Coalesce(N **neighbor_node, N **node,
-                              BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> **parent, int index,
+bool BPLUSTREE_TYPE::Coalesce(N *neighbor_node, N *node,
+                              BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *parent, int index,
                               Transaction *transaction) {
   KeyType middle_key = node->KeyAt(index);
 
-  node->MoveAllTo(neighbor_node, middle_key, buffer_pool_manager_);
+  if(node->IsLeafPage()){
+
+    node->MoveAllTo(neighbor_node);
+  }
+  else
+    node->MoveAllTo(neighbor_node,middle_key,buffer_pool_manager_);
 
   parent->Remove(index);
-  
-  CoalesceOrRedistribute(parent); //deal with coalesce or redistribute recursively
+
+  CoalesceOrRedistribute(parent);  // deal with coalesce or redistribute recursively
 
   return false;
 }
@@ -346,12 +358,21 @@ void BPLUSTREE_TYPE::Redistribute(N *neighbor_node, N *node, int index) {
   int middle_index = parent->ValueIndex(node->GetPageId()) + 1;
   KeyType middle_key = parent->KeyAt(middle_index);
 
-  buffer_pool_manager_->UnpinPage(parent->GetPageId());
-
-  if (index == 0) {
-    neighbor_node->MoveFirstToEndOf(node, middle_key, buffer_pool_manager_);  //sibling在后,移动sibling的第一个
-  } else {
-    neighbor_node->MoveLastToFrontOf(node, middle_key, buffer_pool_manager_); //sibling在前，移动sibling的后一个
+  buffer_pool_manager_->UnpinPage(parent->GetPageId(),false);
+  if(node->IsLeafPage()){
+    if (index == 0) {
+      neighbor_node->MoveFirstToEndOf(node);  // sibling在后,移动sibling的第一个
+      parent->SetKeyAt(middle_index,neighbor_node->KeyAt(1));
+    } else {
+      neighbor_node->MoveLastToFrontOf(node);  // sibling在前，移动sibling的后一个
+    }
+  }else{
+    auto *neighbor_node = reinterpret_cast<BPlusTreeInternalPage<KeyType,page_id_t,KeyComparator> *>(*neighbor_node);
+    if(index == 0) {
+      neighbor_node->MoveFirstToEndOf(node,middle_key,buffer_pool_manager_);
+    }else{
+      neighbor_node->MoveLastToFrontOf(node,middle_key,buffer_pool_manager_);
+    }
   }
 }
 
@@ -404,11 +425,11 @@ bool BPLUSTREE_TYPE::AdjustRoot(BPlusTreePage *old_root_node) {
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-INDEXITERATOR_TYPE BPLUSTREE_TYPE::Begin() { 
+INDEXITERATOR_TYPE BPLUSTREE_TYPE::Begin() {
   KeyType tmp;
-  auto *leaf = FindLeafPage(tmp,true);
+  auto *leaf = FindLeafPage(tmp, true);
 
-  return IndexIterator<KeyType,ValueType,KeyComparator>(leaf,0,buffer_pool_manager_); 
+  return IndexIterator<KeyType, ValueType, KeyComparator>(leaf, 0, buffer_pool_manager_);
 }
 
 /*
@@ -418,10 +439,10 @@ INDEXITERATOR_TYPE BPLUSTREE_TYPE::Begin() {
  */
 INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE BPLUSTREE_TYPE::Begin(const KeyType &key) {
-
-  auto *leaf = FindLeafPage(key,false);
-  int index = leaf->KeyIndex(key,comparator_);
-  return IndexIterator<KeyType,ValueType,KeyComparator>(leaf,index,buffer_pool_manager_); 
+  auto *leaf_page = FindLeafPage(key, false);
+  auto leaf = reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *>(leaf_page->GetData());
+  int index = leaf->KeyIndex(key, comparator_);
+  return IndexIterator<KeyType, ValueType, KeyComparator>(leaf, index, buffer_pool_manager_);
 }
 
 /*
@@ -430,10 +451,7 @@ INDEXITERATOR_TYPE BPLUSTREE_TYPE::Begin(const KeyType &key) {
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-INDEXITERATOR_TYPE BPLUSTREE_TYPE::End() { 
-
-  return INDEXITERATOR_TYPE(); 
-}
+INDEXITERATOR_TYPE BPLUSTREE_TYPE::End() { return INDEXITERATOR_TYPE(); }
 
 /*****************************************************************************
  * UTILITIES AND DEBUG
@@ -494,7 +512,7 @@ void BPLUSTREE_TYPE::UpdateRootPageId(int insert_record) {
       header->Update(index_id_, root_page_id_);
     }
     // TODO:
-    buffer_pool_manager_->UnpinPage();
+    // buffer_pool_manager_->UnpinPage();
   }
 }
 

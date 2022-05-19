@@ -59,6 +59,12 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const {
     return array[index].second;
 }
 
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetValueAt(int index, const ValueType& value){
+  if(index>=0 && index<GetMaxSize())
+    array_[index].second = value;
+}
+
 /*****************************************************************************
  * LOOKUP
  *****************************************************************************/
