@@ -338,24 +338,28 @@ template <typename N>
 bool BPLUSTREE_TYPE::Coalesce(N *neighbor_node, N *node,
                               BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> *parent, int index,
                               Transaction *transaction) {
-  KeyType middle_key = node->KeyAt(index);
 
   if(node->IsLeafPage()){
+    parent->Remove(index);
+
     auto *Node = reinterpret_cast<BPlusTreeLeafPage<KeyType,ValueType,KeyComparator> *>(node);
     auto *Neighbor = reinterpret_cast<BPlusTreeLeafPage<KeyType,ValueType,KeyComparator> *>(neighbor_node);
     Node->MoveAllTo(Neighbor);
-    buffer_pool_manager_->DeletePage(Neighbor->GetPageId());
+    buffer_pool_manager_->DeletePage(Node->GetPageId());
   }
   else{
+    KeyType middle_key = parent->KeyAt(index);
+
     auto *Node = reinterpret_cast<BPlusTreeInternalPage<KeyType,page_id_t,KeyComparator> *>(node);
     auto *Neighbor = reinterpret_cast<BPlusTreeInternalPage<KeyType,page_id_t,KeyComparator> *>(neighbor_node);
     Node->MoveAllTo(Neighbor,middle_key,buffer_pool_manager_);
-    buffer_pool_manager_->DeletePage(Neighbor->GetPageId());
+    buffer_pool_manager_->DeletePage(Node->GetPageId());
   }
 
   parent->Remove(index);
 
   CoalesceOrRedistribute(parent);  // deal with coalesce or redistribute recursively
+  buffer_pool_manager_->UnpinPage(parent->GetPageId());
 
   return false;
 }
@@ -379,7 +383,6 @@ void BPLUSTREE_TYPE::Redistribute(N *neighbor_node, N *node, int index) {
   int middle_index = parent->ValueIndex(node->GetPageId()) + 1;
   KeyType middle_key = parent->KeyAt(middle_index);
 
-  buffer_pool_manager_->UnpinPage(parent->GetPageId(),false);
   if(node->IsLeafPage()){
     auto *Node = reinterpret_cast<BPlusTreeLeafPage<KeyType,ValueType,KeyComparator> *>(node);
     auto *Neighbor = reinterpret_cast<BPlusTreeLeafPage<KeyType,ValueType,KeyComparator> *>(neighbor_node);
@@ -398,6 +401,7 @@ void BPLUSTREE_TYPE::Redistribute(N *neighbor_node, N *node, int index) {
       Neighbor->MoveLastToFrontOf(Node,middle_key,buffer_pool_manager_);
     }
   }
+  buffer_pool_manager_->UnpinPage(parent->GetPageId(),false);
 }
 
 /*
