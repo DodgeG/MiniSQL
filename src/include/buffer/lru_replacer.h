@@ -3,8 +3,9 @@
 
 #include <list>
 #include <mutex>
-#include <unordered_set>
+#include <unordered_map>
 #include <vector>
+#include <queue>
 
 #include "buffer/replacer.h"
 #include "common/config.h"
@@ -37,6 +38,10 @@ public:
 
 private:
   // add your own private member variables here
+  unordered_map<frame_id_t, int32_t> uid;
+  queue<pair<frame_id_t, int32_t>> replace_pool;
+  uint32_t size;
+  uint32_t capacity;
 };
 
 #endif  // MINISQL_LRU_REPLACER_H

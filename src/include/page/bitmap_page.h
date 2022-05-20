@@ -40,6 +40,15 @@ private:
    */
   bool IsPageFreeLow(uint32_t byte_index, uint8_t bit_index) const;
 
+  /**
+   * @brief Set the page status
+   * 
+   * @param page_offset 
+   * @param s 
+   */
+  void SetPage(uint32_t page_offset, uint8_t s);
+  void SetPage(uint32_t byte_index, uint8_t bit_index, uint8_t s);
+
   /** Note: need to update if modify page structure. */
   static constexpr size_t MAX_CHARS = PageSize - 2 * sizeof(uint32_t);
 
