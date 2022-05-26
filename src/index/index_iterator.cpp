@@ -24,7 +24,7 @@ INDEX_TEMPLATE_ARGUMENTS const MappingType &INDEXITERATOR_TYPE::operator*() {
 
 INDEX_TEMPLATE_ARGUMENTS INDEXITERATOR_TYPE &INDEXITERATOR_TYPE::operator++() {
 
-  if(index_ == leaf_->GetMaxSize() - 1){
+  if(index_ == leaf_->GetSize() - 1){
     page_id_t next_id = leaf_->GetNextPageId();
     buff_pool_manager_->UnpinPage(leaf_->GetPageId(),false);
     if(next_id != INVALID_PAGE_ID){
@@ -39,7 +39,6 @@ INDEX_TEMPLATE_ARGUMENTS INDEXITERATOR_TYPE &INDEXITERATOR_TYPE::operator++() {
     index_++;
   }
   return *this;
-  //ASSERT(false, "Not implemented yet.");
 }
 
 INDEX_TEMPLATE_ARGUMENTS

@@ -42,6 +42,8 @@ public:
 
   void SetNextPageId(page_id_t next_page_id);
 
+  void SetLastPageId(page_id_t last_page_id);
+
   KeyType KeyAt(int index) const;
 
   int KeyIndex(const KeyType &key, const KeyComparator &comparator) const;

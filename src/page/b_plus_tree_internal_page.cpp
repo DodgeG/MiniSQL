@@ -15,6 +15,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id
   SetPageId(page_id);
   SetParentPageId(parent_id);
   SetPageType(IndexPageType::INTERNAL_PAGE);
+  SetSize(1);
   //TODO:
   SetMaxSize(max_size);
 }
@@ -25,8 +26,8 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id
 INDEX_TEMPLATE_ARGUMENTS
 KeyType B_PLUS_TREE_INTERNAL_PAGE_TYPE::KeyAt(int index) const {
   // replace with your own code
-  if(index<0||index>=GetSize())
-    throw out_of_range("Error!");
+  ASSERT(index>=0 && index<GetSize(),"index overflow!");
+
 
   return array_[index].first;
   //else throw out_of_range;
@@ -35,8 +36,8 @@ KeyType B_PLUS_TREE_INTERNAL_PAGE_TYPE::KeyAt(int index) const {
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) {
 
-  if(index>=0&&index<GetSize())
-    array_[index].first = key;
+  ASSERT(index>=0 && index<GetSize(),"index overflow!");
+  array_[index].first = key;
 }
 
 /*
@@ -60,17 +61,16 @@ int B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueIndex(const ValueType &value) const {
 INDEX_TEMPLATE_ARGUMENTS
 ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const {
   // replace with your own code
-  if(index<0 || index>=GetSize())
-    throw out_of_range("Error!");
-  
+  ASSERT(index>=0 && index<GetSize(),"index overflow!");
+
   return array_[index].second;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetValueAt(int index, const ValueType& value){
 
-  if(index>=0 && index<GetMaxSize())
-    array_[index].second = value;
+  ASSERT(index>=0 && index<GetSize(),"index overflow!");
+  array_[index].second = value;
 }
 
 /*****************************************************************************
@@ -92,7 +92,7 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyCo
     return array_[lim-1].second;
 
   for(i=1;i<lim-1;i++){
-    if(comparator(key,array_[i].first)>=0 && comparator(key,array_[i+1].first)<0)
+    if(comparator(key,array_[i+1].first)<0)
       break;
   }
 
@@ -114,6 +114,9 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::PopulateNewRoot(const ValueType &old_value,
   array_[0].second = old_value;
   array_[1].first = new_key;
   array_[1].second = new_value;
+  /*int tmp1 = array_[0].second;
+  int tmp2 = array_[1].second;
+  ASSERT(tmp1&&tmp2,"Tets!");*/
   IncreaseSize(1);
 
 }
@@ -134,7 +137,12 @@ int B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertNodeAfter(const ValueType &old_value, 
       break;
     }
   }
-  for(int j = lim-1;j>i+1;j--){
+  /*int tmp1 = array_[0].second;
+  int tmp2 = array_[1].second;
+  int tmp3 = array_[2].second;
+  ASSERT(tmp1&&tmp2&&tmp3,"Tets!");*/
+
+  for(int j = GetSize()-1;j>i+1;j--){
     array_[j] = array_[j-1];
   }
   array_[i+1].first = new_key;
@@ -194,8 +202,8 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyNFrom(MappingType *items, int size, Buf
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(int index) {
 
-  if(index<0||index>=GetSize())
-    cout<<"Error";
+  ASSERT(index>=0 && index<GetSize(),"Index overflow!");
+
 
   for(int i=index;i<GetSize()-1;i++)
     array_[i] = array_[i+1];
@@ -230,6 +238,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient,
                                                BufferPoolManager *buffer_pool_manager) {
 
   auto *page = buffer_pool_manager->FetchPage(GetParentPageId()); //得到父页
+
   auto *parent = reinterpret_cast<BPlusTreeInternalPage *>(page->GetData());  //获取父页数据并将其填充到类中
 
   array_[0].first = middle_key; //为了使第0个指针可以移入目标页
@@ -257,14 +266,6 @@ INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveFirstToEndOf(BPlusTreeInternalPage *recipient, const KeyType &middle_key,
                                                       BufferPoolManager *buffer_pool_manager) {
   MappingType first = {middle_key,ValueAt(0)};
-
-  auto *Page = buffer_pool_manager->FetchPage(recipient->GetParentPageId());
-  if(Page!=NULL){
-    auto *parent = reinterpret_cast<BPlusTreeInternalPage *>(Page->GetData());
-    int tmp_index = recipient->ValueIndex(recipient->GetPageId());
-    recipient->array_[tmp_index+1].first = KeyAt(1);
-    buffer_pool_manager->UnpinPage(parent->GetPageId(),true);
-  }
 
   array_[0].second = array_[1].second;
   Remove(1);
@@ -302,16 +303,9 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyLastFrom(const MappingType &pair, Buffe
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveLastToFrontOf(BPlusTreeInternalPage *recipient, const KeyType &middle_key,
                                                        BufferPoolManager *buffer_pool_manager) {
+  MappingType last = {middle_key,ValueAt(GetSize()-1)};
   IncreaseSize(-1);
-  MappingType last = {middle_key,ValueAt(GetSize())};
-
-  auto *Page = buffer_pool_manager->FetchPage(recipient->GetParentPageId());
-  if(Page!=NULL){
-    auto *parent = reinterpret_cast<BPlusTreeInternalPage *>(Page->GetData());
-    int tmp_index = recipient->ValueIndex(recipient->GetPageId());
-    recipient->array_[tmp_index-1].first = KeyAt(GetSize());
-    buffer_pool_manager->UnpinPage(parent->GetPageId(),true);
-  }
+  recipient->SetKeyAt(0,middle_key);
 
   recipient->CopyFirstFrom(last,buffer_pool_manager);
 }
@@ -325,7 +319,6 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyFirstFrom(const MappingType &pair, Buff
 
   InsertNodeAfter(array_[0].second,pair.first,array_[0].second);
   array_[0].second = pair.second;
-  IncreaseSize(1);
 
   auto *page = buffer_pool_manager->FetchPage(pair.second);
   if(page!=NULL){

@@ -103,8 +103,10 @@ bool BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty) {
   auto iter = page_table_.find(page_id);
   if (iter == page_table_.end()) return false;
   frame_id_t P = (*iter).second;
-  pages_[P].pin_count_--;
-  replacer_->Unpin(P);
+  if(pages_[P].pin_count_>0){
+    pages_[P].pin_count_--;
+    replacer_->Unpin(P);
+  }
   if (is_dirty) pages_[P].is_dirty_ = true;
   return true;
 }
