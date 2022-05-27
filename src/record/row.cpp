@@ -11,8 +11,8 @@ uint32_t Row::SerializeTo(char *buf, Schema *schema) const {
   memcpy(buf + ofs, bitmap, (fields_.size() + 7) / 8);
   ofs += (fields_.size() + 7) / 8;
   for (size_t i = 0; i < fields_.size(); ++i) {
-    MACH_WRITE_TO(TypeId, buf + ofs, fields_[i]->GetTypeId());
-    ofs += sizeof(TypeId);
+    // MACH_WRITE_TO(TypeId, buf + ofs, fields_[i]->GetTypeId());
+    // ofs += sizeof(TypeId);
     ofs += fields_[i]->SerializeTo(buf + ofs);
   }
   return ofs;
@@ -28,8 +28,9 @@ uint32_t Row::DeserializeFrom(char *buf, Schema *schema) {
   memcpy(bitmap, buf + ofs, (size + 7) / 8);
   ofs += (size + 7) / 8;
   for (size_t i = 0; i < size; ++i) {
-    TypeId type = MACH_READ_FROM(TypeId, buf + ofs);
-    ofs += sizeof(TypeId);
+    // TypeId type = MACH_READ_FROM(TypeId, buf + ofs);
+    TypeId type = (schema->GetColumn(i))->GetType();
+    // ofs += sizeof(TypeId);
     Field *field = nullptr;
     ofs += Field::DeserializeFrom(buf + ofs, type, &field, (bitmap[i / 8] >> i) & 1, heap_);
     fields_.emplace_back(field);
@@ -38,7 +39,8 @@ uint32_t Row::DeserializeFrom(char *buf, Schema *schema) {
 }
 
 uint32_t Row::GetSerializedSize(Schema *schema) const {
-  uint32_t ofs = sizeof(int64_t) + sizeof(size_t) + (fields_.size() + 7) / 8 + fields_.size() * sizeof(TypeId);
+  uint32_t ofs = sizeof(int64_t) + sizeof(size_t) + (fields_.size() + 7) / 8;
+  // uint32_t ofs = sizeof(int64_t) + sizeof(size_t) + (fields_.size() + 7) / 8 + fields_.size() * sizeof(TypeId);
   for (size_t i = 0; i < fields_.size(); ++i)
     ofs += fields_[i]->GetSerializedSize();
   return ofs;
