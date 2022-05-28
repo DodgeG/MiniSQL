@@ -35,7 +35,7 @@ TEST(BPlusTreeTests, BPlusTreeIndexGenericKeyTest) {
   //ASSERT_EQ(0, comparator(k1, k2));
 }
 
-/*TEST(BPlusTreeTests, BPlusTreeIndexSimpleTest) {
+TEST(BPlusTreeTests, BPlusTreeIndexSimpleTest) {
   using INDEX_KEY_TYPE = GenericKey<32>;
   using INDEX_COMPARATOR_TYPE = GenericComparator<32>;
   using BP_TREE_INDEX = BPlusTreeIndex<INDEX_KEY_TYPE, RowId, INDEX_COMPARATOR_TYPE>;
@@ -79,4 +79,4 @@ TEST(BPlusTreeTests, BPlusTreeIndexGenericKeyTest) {
     ASSERT_EQ(i, (*iter).second.GetSlotNum());
     i++;
   }
-}*/
+}
