@@ -1,7 +1,7 @@
 #include "catalog/table.h"
 
 uint32_t TableMetadata::SerializeTo(char *buf) const {
-  uint32_t ofs = sizeof(size_t);
+  uint32_t ofs = sizeof(TABLE_METADATA_MAGIC_NUM);
   MACH_WRITE_TO(uint32_t, buf, TABLE_METADATA_MAGIC_NUM);
   MACH_WRITE_TO(table_id_t, buf+ofs, table_id_);
   ofs+=sizeof(table_id_t);
@@ -18,7 +18,7 @@ uint32_t TableMetadata::SerializeTo(char *buf) const {
 }
 
 uint32_t TableMetadata::GetSerializedSize() const {
-  return sizeof(uint32_t)+sizeof(size_t)+table_name_.size()+sizeof(table_id_t)+sizeof(page_id_t)+(*schema_).GetSerializedSize();
+  return sizeof(TABLE_METADATA_MAGIC_NUM)+sizeof(size_t)+table_name_.size()+sizeof(table_id_t)+sizeof(page_id_t)+(*schema_).GetSerializedSize();
 }
 
 /**
@@ -27,7 +27,7 @@ uint32_t TableMetadata::GetSerializedSize() const {
 uint32_t TableMetadata::DeserializeFrom(char *buf, TableMetadata *&table_meta, MemHeap *heap) {
   uint32_t MAGIC_NUM = MACH_READ_FROM(uint32_t, buf);
   ASSERT(TABLE_METADATA_MAGIC_NUM == MAGIC_NUM,"TABLE FORMAT ERROR!!");
-  uint32_t ofs = sizeof(table_id_t);
+  uint32_t ofs = sizeof(TABLE_METADATA_MAGIC_NUM);
   table_id_t table_id = MACH_READ_FROM(table_id_t, buf+ofs);
   ofs += sizeof(table_id_t);
   size_t size = MACH_READ_FROM(size_t, buf+ofs);
@@ -42,7 +42,7 @@ uint32_t TableMetadata::DeserializeFrom(char *buf, TableMetadata *&table_meta, M
   Schema *schema;
   ofs+=Schema::DeserializeFrom(buf+ofs, schema, heap);
   //
-  table_meta = ALLOC_P(heap,TableMetadata)(table_id, table_name, table_name, root_page_id, schema);
+  table_meta = ALLOC_P(heap,TableMetadata)(table_id, table_name, root_page_id, schema);
   return ofs;
 }
 

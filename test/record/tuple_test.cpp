@@ -118,3 +118,41 @@ TEST(TupleTest, RowTest) {
   ASSERT_TRUE(table_page.MarkDelete(row.GetRowId(), nullptr, nullptr, nullptr));
   table_page.ApplyDelete(row.GetRowId(), nullptr, nullptr);
 }
+
+TEST(TupleTest, SchemaTest) {
+  SimpleMemHeap heap;
+  TablePage table_page;
+  // create schema
+  std::vector<Column *> columns = {
+          ALLOC_COLUMN(heap)("id", TypeId::kTypeInt, 0, false, false),
+          ALLOC_COLUMN(heap)("name", TypeId::kTypeChar, 64, 1, true, false),
+          ALLOC_COLUMN(heap)("account", TypeId::kTypeFloat, 2, true, false)
+  };
+  
+  TableSchema schema(columns);
+  //SimpleMemHeap heap;
+  char *buf = reinterpret_cast<char *>(heap.Allocate(PAGE_SIZE));
+  schema.SerializeTo(buf);
+  TableSchema* tmp;
+  schema.DeserializeFrom(buf,tmp,&heap);
+
+  std::vector<Column *> col;
+  col = tmp->GetColumns();
+  auto iter = col.begin();
+  ASSERT_EQ("id", (*iter)->GetName());
+  ASSERT_EQ(TypeId::kTypeInt, (*iter)->GetType());
+  ASSERT_EQ(0, (*iter)->GetTableInd());
+  ASSERT_EQ(false, (*iter)->IsNullable());
+  iter++;
+  ASSERT_EQ("name", (*iter)->GetName());
+  ASSERT_EQ(TypeId::kTypeChar, (*iter)->GetType());
+  ASSERT_EQ(64, (*iter)->GetLength());
+  ASSERT_EQ(1, (*iter)->GetTableInd());
+  ASSERT_EQ(true, (*iter)->IsNullable());
+  iter++;
+  ASSERT_EQ("account", (*iter)->GetName());
+  ASSERT_EQ(TypeId::kTypeFloat, (*iter)->GetType());
+  ASSERT_EQ(2, (*iter)->GetTableInd());
+  ASSERT_EQ(true, (*iter)->IsNullable());
+
+}

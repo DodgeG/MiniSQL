@@ -36,7 +36,12 @@ private:
   IndexMetadata() = delete;
 
   explicit IndexMetadata(const index_id_t index_id, const std::string &index_name,
-                         const table_id_t table_id, const std::vector<uint32_t> &key_map) {}
+                         const table_id_t table_id, const std::vector<uint32_t> &key_map) {
+                           index_id_ = index_id;
+                           index_name_ = index_name;
+                           table_id_ = table_id;
+                           key_map_ = key_map;
+                         }
 
 private:
   static constexpr uint32_t INDEX_METADATA_MAGIC_NUM = 344528;
