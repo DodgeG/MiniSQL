@@ -92,8 +92,8 @@ CatalogManager::~CatalogManager() {
 dberr_t CatalogManager::CreateTable(const string &table_name, TableSchema *schema,
                                     Transaction *txn, TableInfo *&table_info) {
   
-  char *buf = reinterpret_cast<char *>(heap_->Allocate(PAGE_SIZE));
-  CatalogMeta *meta = catalog_meta_->DeserializeFrom(buf,heap_);
+  // char *buf = reinterpret_cast<char *>(heap_->Allocate(PAGE_SIZE));
+  // CatalogMeta *meta = catalog_meta_->DeserializeFrom(buf,heap_);
   
 
   return DB_FAILED;
