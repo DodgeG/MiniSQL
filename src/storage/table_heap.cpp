@@ -3,7 +3,7 @@
 bool TableHeap::InsertTuple(Row &row, Transaction *txn) {
   page_id_t last_page_id;
   for (page_id_t page_id = first_page_id_; page_id != INVALID_PAGE_ID; ) {
-    auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(page_id));    
+    auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(page_id));
     page->WLatch();
     bool status = page->InsertTuple(row, schema_, txn, lock_manager_, log_manager_);
     page->WUnlatch();
@@ -18,9 +18,12 @@ bool TableHeap::InsertTuple(Row &row, Transaction *txn) {
   auto last_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(last_page_id));
   new_page->Init(new_page_id, last_page_id, log_manager_, txn);
   last_page->SetNextPageId(new_page_id);
+  new_page->WLatch();
+  bool status = new_page->InsertTuple(row, schema_, txn, lock_manager_, log_manager_);
+  new_page->WUnlatch();
   buffer_pool_manager_->UnpinPage(new_page_id, true);
   buffer_pool_manager_->UnpinPage(last_page_id, true);
-  return true;
+  return status;
 }
 
 bool TableHeap::MarkDelete(const RowId &rid, Transaction *txn) {
