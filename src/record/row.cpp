@@ -5,7 +5,8 @@ uint32_t Row::SerializeTo(char *buf, Schema *schema) const {
   uint32_t ofs = sizeof(int64_t);
   MACH_WRITE_TO(size_t, buf + ofs, fields_.size());
   ofs += sizeof(size_t);
-  unsigned char bitmap[(fields_.size() + 7) / 8] = {};
+  // unsigned char bitmap[(fields_.size() + 7) / 8] = {}; // malloc in stack
+  unsigned char *bitmap = new unsigned char[(fields_.size() + 7) / 8];
   for (size_t i = 0; i < fields_.size(); ++i)
     if (fields_[i]->IsNull()) bitmap[i / 8] |= 1u << (i % 8);
   memcpy(buf + ofs, bitmap, (fields_.size() + 7) / 8);
@@ -15,6 +16,7 @@ uint32_t Row::SerializeTo(char *buf, Schema *schema) const {
     // ofs += sizeof(TypeId);
     ofs += fields_[i]->SerializeTo(buf + ofs);
   }
+  delete [] bitmap;
   return ofs;
 }
 
@@ -24,7 +26,8 @@ uint32_t Row::DeserializeFrom(char *buf, Schema *schema) {
   uint32_t ofs = sizeof(int64_t);
   size_t size = MACH_READ_FROM(size_t, buf + ofs);
   ofs += sizeof(size_t);
-  unsigned char bitmap[(size + 7) / 8] = {};
+  // unsigned char bitmap[(fields_.size() + 7) / 8] = {}; // malloc in stack
+  unsigned char *bitmap = new unsigned char[(fields_.size() + 7) / 8];
   memcpy(bitmap, buf + ofs, (size + 7) / 8);
   ofs += (size + 7) / 8;
   for (size_t i = 0; i < size; ++i) {
@@ -35,6 +38,7 @@ uint32_t Row::DeserializeFrom(char *buf, Schema *schema) {
     ofs += Field::DeserializeFrom(buf + ofs, type, &field, (bitmap[i / 8] >> i) & 1, heap_);
     fields_.emplace_back(field);
   }
+  delete [] bitmap;
   return ofs;
 }
 

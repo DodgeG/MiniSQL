@@ -1,17 +1,29 @@
 #include "storage/table_heap.h"
 
 bool TableHeap::InsertTuple(Row &row, Transaction *txn) {
-  for (page_id_t page_id = first_page_id_; page_id != 0; ) {
-    auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(page_id));    
+  page_id_t last_page_id;
+  for (page_id_t page_id = first_page_id_; page_id != INVALID_PAGE_ID; ) {
+    auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(page_id));
     page->WLatch();
     bool status = page->InsertTuple(row, schema_, txn, lock_manager_, log_manager_);
     page->WUnlatch();
-    page_id = page->GetNextPageId();
-    buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
+    page_id_t next_page_id = page->GetNextPageId();
+    buffer_pool_manager_->UnpinPage(page_id, status);
     if (status) return true;
+    last_page_id = page_id;
+    page_id = next_page_id;
   }
-
-  return false;
+  page_id_t new_page_id;
+  auto new_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->NewPage(new_page_id));
+  auto last_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(last_page_id));
+  new_page->Init(new_page_id, last_page_id, log_manager_, txn);
+  last_page->SetNextPageId(new_page_id);
+  new_page->WLatch();
+  bool status = new_page->InsertTuple(row, schema_, txn, lock_manager_, log_manager_);
+  new_page->WUnlatch();
+  buffer_pool_manager_->UnpinPage(new_page_id, true);
+  buffer_pool_manager_->UnpinPage(last_page_id, true);
+  return status;
 }
 
 bool TableHeap::MarkDelete(const RowId &rid, Transaction *txn) {
@@ -43,6 +55,7 @@ bool TableHeap::UpdateTuple(Row &row, const RowId &rid, Transaction *txn) {
   int status = page->UpdateTuple(row, old_row, schema_, txn, lock_manager_, log_manager_);
   page->WUnlatch();
   buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
+  delete old_row;
   if (status < 0) {
     return MarkDelete(rid, txn) && InsertTuple(row, txn);
   }
@@ -73,7 +86,13 @@ void TableHeap::RollbackDelete(const RowId &rid, Transaction *txn) {
 }
 
 void TableHeap::FreeHeap() {
-
+  for (page_id_t page_id = first_page_id_; page_id != INVALID_PAGE_ID; ) {
+    auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(page_id));
+    page_id_t next_page_id = page->GetNextPageId();
+    buffer_pool_manager_->UnpinPage(page_id, false);
+    buffer_pool_manager_->DeletePage(page_id);
+    page_id = next_page_id;
+  }
 }
 
 bool TableHeap::GetTuple(Row *row, Transaction *txn) {

@@ -1,7 +1,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "common/instance.h"
+// #include "common/instance.h"
 #include "gtest/gtest.h"
 #include "record/field.h"
 #include "record/schema.h"
@@ -13,7 +13,23 @@ using Fields = std::vector<Field>;
 
 TEST(TableHeapTest, TableHeapSampleTest) {
   // init testing instance
-  DBStorageEngine engine(db_file_name);
+  // DBStorageEngine engine(db_file_name);
+  DiskManager *disk_mgr_ = new DiskManager(db_file_name);
+  uint32_t buffer_pool_size = DEFAULT_BUFFER_POOL_SIZE;
+  BufferPoolManager *bpm_ = new BufferPoolManager(buffer_pool_size, disk_mgr_);
+  bool init = true;
+  if (init) {
+      page_id_t id;
+      ASSERT(bpm_->IsPageFree(CATALOG_META_PAGE_ID), "Catalog meta page not free.");
+      ASSERT(bpm_->IsPageFree(INDEX_ROOTS_PAGE_ID), "Header page not free.");
+      ASSERT(bpm_->NewPage(id) != nullptr && id == CATALOG_META_PAGE_ID, "Failed to allocate catalog meta page.");
+      ASSERT(bpm_->NewPage(id) != nullptr && id == INDEX_ROOTS_PAGE_ID, "Failed to allocate header page.");
+      bpm_->UnpinPage(CATALOG_META_PAGE_ID, false);
+      bpm_->UnpinPage(INDEX_ROOTS_PAGE_ID, false);
+    } else {
+      ASSERT(!bpm_->IsPageFree(CATALOG_META_PAGE_ID), "Invalid catalog meta page.");
+      ASSERT(!bpm_->IsPageFree(INDEX_ROOTS_PAGE_ID), "Invalid header page.");
+    }
   SimpleMemHeap heap;
   const int row_nums = 1000;
   // create schema
@@ -25,7 +41,8 @@ TEST(TableHeapTest, TableHeapSampleTest) {
   auto schema = std::make_shared<Schema>(columns);
   // create rows
   std::unordered_map<int64_t, Fields *> row_values;
-  TableHeap *table_heap = TableHeap::Create(engine.bpm_, schema.get(), nullptr, nullptr, nullptr, &heap);
+  TableHeap *table_heap = TableHeap::Create(bpm_, schema.get(), nullptr, nullptr, nullptr, &heap);
+  // Where is to free table_heap?
   for (int i = 0; i < row_nums; i++) {
     int32_t len = RandomUtils::RandomInt(0, 64);
     char *characters = new char[len];
