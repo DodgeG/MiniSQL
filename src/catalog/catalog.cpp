@@ -75,14 +75,7 @@ CatalogManager::CatalogManager(BufferPoolManager *buffer_pool_manager, LockManag
                                LogManager *log_manager, bool init)
         : buffer_pool_manager_(buffer_pool_manager), lock_manager_(lock_manager),
           log_manager_(log_manager), heap_(new SimpleMemHeap()) {
-  /*if(init == true){
-    catalog_meta_->NewInstance(heap_);  //初始化创建
-    auto *page = buffer_pool_manager->FetchPage(CATALOG_META_PAGE_ID);
-    if(page!=nullptr){
-      char *buf = page->GetData();
-      catalog_meta_->DeserializeFrom(buf,heap_);
-    }
-  }*/
+  
 }
 
 CatalogManager::~CatalogManager() {
@@ -92,8 +85,7 @@ CatalogManager::~CatalogManager() {
 dberr_t CatalogManager::CreateTable(const string &table_name, TableSchema *schema,
                                     Transaction *txn, TableInfo *&table_info) {
   
-  // char *buf = reinterpret_cast<char *>(heap_->Allocate(PAGE_SIZE));
-  // CatalogMeta *meta = catalog_meta_->DeserializeFrom(buf,heap_);
+
   
 
   return DB_FAILED;
