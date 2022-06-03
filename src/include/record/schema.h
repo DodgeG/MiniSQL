@@ -1,5 +1,5 @@
-#include <vector>
 #include <cstdint>
+#include <vector>
 #include "common/dberr.h"
 #include "common/macros.h"
 #include "glog/logging.h"
@@ -9,7 +9,7 @@
 #define MINISQL_SCHEMA_H
 
 class Schema {
-public:
+ public:
   explicit Schema(const std::vector<Column *> columns) : columns_(std::move(columns)) {}
 
   inline const std::vector<Column *> &GetColumns() const { return columns_; }
@@ -41,7 +41,7 @@ public:
       cols.emplace_back(table_schema->columns_[i]);
     }
     void *buf = heap->Allocate(sizeof(Schema));
-    return new(buf) Schema(cols);
+    return new (buf) Schema(cols);
   }
 
   /**
@@ -51,10 +51,10 @@ public:
     std::vector<Column *> cols;
     for (uint32_t i = 0; i < from->GetColumnCount(); i++) {
       void *buf = heap->Allocate(sizeof(Column));
-      cols.push_back(new(buf)Column(from->GetColumn(i)));
+      cols.push_back(new (buf) Column(from->GetColumn(i)));
     }
     void *buf = heap->Allocate(sizeof(Schema));
-    return new(buf) Schema(cols);
+    return new (buf) Schema(cols);
   }
 
   /**
@@ -72,9 +72,9 @@ public:
    */
   static uint32_t DeserializeFrom(char *buf, Schema *&schema, MemHeap *heap);
 
-private:
+ private:
   static constexpr uint32_t SCHEMA_MAGIC_NUM = 200715;
-  std::vector<Column *> columns_;   /** don't need to delete pointer to column */
+  std::vector<Column *> columns_; /** don't need to delete pointer to column */
 };
 
 using IndexSchema = Schema;
