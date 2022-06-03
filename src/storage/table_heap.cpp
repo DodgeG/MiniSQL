@@ -59,7 +59,7 @@ bool TableHeap::UpdateTuple(Row &row, const RowId &rid, Transaction *txn) {
   if (status < 0) {
     return MarkDelete(rid, txn) && InsertTuple(row, txn);
   }
-  return true;
+  return status;
 }
 
 void TableHeap::ApplyDelete(const RowId &rid, Transaction *txn) {
@@ -103,17 +103,28 @@ bool TableHeap::GetTuple(Row *row, Transaction *txn) {
     return false;
   }
   // Otherwise, get the tuple.
-  page->WLatch();
+  page->RLatch();
   page->GetTuple(row, schema_, txn, lock_manager_);
-  page->WUnlatch();
+  page->RUnlatch();
   buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
   return true;
 }
 
 TableIterator TableHeap::Begin(Transaction *txn) {
-  return TableIterator();
+  RowId first_rid;
+  for (page_id_t page_id = first_page_id_; page_id != INVALID_PAGE_ID; ) {
+    auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(page_id));
+    page->RLatch();
+    bool status = page->GetFirstTupleRid(&first_rid);
+    page->RUnlatch();
+    page_id_t next_page_id = page->GetNextPageId();
+    buffer_pool_manager_->UnpinPage(page_id, status);
+    if (status) return TableIterator(this, first_rid, txn);
+    page_id = next_page_id;
+  }
+  return TableIterator(this, first_rid, txn);
 }
 
 TableIterator TableHeap::End() {
-  return TableIterator();
+  return TableIterator(this, RowId(), nullptr);
 }
