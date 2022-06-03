@@ -66,10 +66,23 @@ public:
   }
 
   void Init(IndexMetadata *meta_data, TableInfo *table_info, BufferPoolManager *buffer_pool_manager) {
-    // Step1: init index metadata and table info
+    meta_data_ = meta_data;
+    table_info_ = table_info;
+
     // Step2: mapping index key to key schema
+    //key_schema_ = table_info->GetSchema();
+    auto key_map = meta_data->GetKeyMapping();
+    std::vector<Column *> cols;
+    auto schema = table_info->GetSchema();
+    for(auto id : key_map){
+      const Column *col = schema->GetColumn(id);
+      cols.push_back((Column *)col);
+    }
+
+    key_schema_ = new Schema(cols);
+    
     // Step3: call CreateIndex to create the index
-    ASSERT(false, "Not Implemented yet.");
+    index_ = CreateIndex(buffer_pool_manager);
   }
 
   inline Index *GetIndex() { return index_; }
@@ -87,8 +100,25 @@ private:
                          key_schema_{nullptr}, heap_(new SimpleMemHeap()) {}
 
   Index *CreateIndex(BufferPoolManager *buffer_pool_manager) {
-    ASSERT(false, "Not Implemented yet.");
-    return nullptr;
+    //ASSERT(false, "Not Implemented yet.");
+    auto key_map = meta_data_->GetKeyMapping();
+    size_t size = 0;
+    auto keys = key_schema_->GetColumns();
+    for(auto key : keys){
+      TypeId type = key->GetType();
+      if(type == kTypeInt)
+        size = size + 4;
+      else if(type == kTypeFloat)
+        size = size + 4;
+      else if(type == kTypeChar)
+        size = size + key->GetLength();
+    }
+
+    if(size < 32){
+      return new BPlusTreeIndex<GenericKey<32>,RowId,GenericComparator<32>>(meta_data_->GetIndexId(),key_schema_,buffer_pool_manager);
+    }else{
+      return new BPlusTreeIndex<GenericKey<64>,RowId,GenericComparator<64>>(meta_data_->GetIndexId(),key_schema_,buffer_pool_manager);
+    }
   }
 
 private:
