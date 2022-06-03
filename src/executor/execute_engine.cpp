@@ -1,9 +1,7 @@
 #include "executor/execute_engine.h"
 #include "glog/logging.h"
 
-ExecuteEngine::ExecuteEngine() {
-
-}
+ExecuteEngine::ExecuteEngine() {}
 
 dberr_t ExecuteEngine::Execute(pSyntaxNode ast, ExecuteContext *context) {
   if (ast == nullptr) {
@@ -54,12 +52,25 @@ dberr_t ExecuteEngine::Execute(pSyntaxNode ast, ExecuteContext *context) {
   return DB_FAILED;
 }
 
-uint32_t StringToInt(char *s){
+uint32_t StringToInt(char *s) {
   uint32_t len = 0;
-  for(int i = 0;s[i]!='\0';++i){
+  for (int i = 0; s[i] != '\0'; ++i) {
     len = len * 10 + s[i] - '0';
   }
   return len;
+}
+float StringToFloat(char *s) {
+  float len = 0;
+  int i = 0, j = 0;
+  for (; s[i] != '.'; ++i) {
+    len = len * 10 + s[i] - '0';
+  }
+  ++i;
+  for (; s[i] != '\0'; ++i, ) {
+    len = len * 10 + s[i] - '0';
+    j++;
+  }
+  return len / (pow(10, j));
 }
 
 dberr_t ExecuteEngine::ExecuteCreateDatabase(pSyntaxNode ast, ExecuteContext *context) {
@@ -68,12 +79,12 @@ dberr_t ExecuteEngine::ExecuteCreateDatabase(pSyntaxNode ast, ExecuteContext *co
 #endif
   pSyntaxNode tmp = ast->child_;
   string db_name = tmp->val_;
-  if(dbs_.find(db_name) != dbs_.end()){
+  if (dbs_.find(db_name) != dbs_.end()) {
     printf("[INFO] This database has existed!\n");
     return DB_FAILED;
-  }else{
+  } else {
     DBStorageEngine engine(db_name);
-    dbs_.insert({db_name,&engine});
+    dbs_.insert({db_name, &engine});
     return DB_SUCCESS;
   }
 }
@@ -85,14 +96,13 @@ dberr_t ExecuteEngine::ExecuteDropDatabase(pSyntaxNode ast, ExecuteContext *cont
   pSyntaxNode tmp = ast->child_;
   string db_name = tmp->val_;
   auto iter = dbs_.find(db_name);
-  if(iter == dbs_.end()){
+  if (iter == dbs_.end()) {
     printf("[INFO] Database not exist!\n");
     return DB_FAILED;
-  }else{
+  } else {
     dbs_.erase(iter);
     printf("[INFO] Drop database successfully!\n");
-    if(db_name == current_db_)
-      current_db_.clear();
+    if (db_name == current_db_) current_db_.clear();
     return DB_SUCCESS;
   }
 }
@@ -101,12 +111,12 @@ dberr_t ExecuteEngine::ExecuteShowDatabases(pSyntaxNode ast, ExecuteContext *con
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteShowDatabases" << std::endl;
 #endif
-  if(dbs_.empty()){
+  if (dbs_.empty()) {
     printf("[INFO] Don't have any databases!\n");
     return DB_FAILED;
-  }else{
-    for(auto iter = dbs_.begin();iter != dbs_.end();++iter){
-      std::cout<<"[DATABASE] "<<iter->first<<'\n';
+  } else {
+    for (auto iter = dbs_.begin(); iter != dbs_.end(); ++iter) {
+      std::cout << "[DATABASE] " << iter->first << '\n';
     }
     return DB_SUCCESS;
   }
@@ -119,10 +129,10 @@ dberr_t ExecuteEngine::ExecuteUseDatabase(pSyntaxNode ast, ExecuteContext *conte
   pSyntaxNode tmp = ast->child_;
   string db_name = tmp->val_;
   auto iter = dbs_.find(db_name);
-  if(iter == dbs_.end()){
+  if (iter == dbs_.end()) {
     printf("[INFO] No such database!\n");
     return DB_FAILED;
-  }else{
+  } else {
     current_db_ = db_name;
     printf("[INFO] Use successfully!\n");
     return DB_SUCCESS;
@@ -138,13 +148,13 @@ dberr_t ExecuteEngine::ExecuteShowTables(pSyntaxNode ast, ExecuteContext *contex
   std::vector<TableInfo *> tables;
   cata->GetTables(tables);
 
-  if(tables.empty()){
+  if (tables.empty()) {
     printf("[INFO] There aren't any tables!\n");
     return DB_FAILED;
-  }else{
-    printf("[TITLE] Tables_in_%s\n",current_db_.c_str());
-    for(auto iter = tables.begin();iter != tables.end();++iter){
-      printf("[TABLE] %s\n",(*iter)->GetTableName().c_str());
+  } else {
+    printf("[TITLE] Tables_in_%s\n", current_db_.c_str());
+    for (auto iter = tables.begin(); iter != tables.end(); ++iter) {
+      printf("[TABLE] %s\n", (*iter)->GetTableName().c_str());
     }
     return DB_SUCCESS;
   }
@@ -162,62 +172,60 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
   pSyntaxNode tmp = ast->child_;
   table_name = tmp->val_;
 
-
   tmp = tmp->next_;
   tmp = tmp->child_;
   std::string column_name;
   TypeId type_;
   uint32_t index = 0;
   uint32_t len = 0;
-  string constraint[3] = {"unique","not null","primary key"};
-  string TYPE[3] = {"char","int","float"};
+  string constraint[3] = {"unique", "not null", "primary key"};
+  string TYPE[3] = {"char", "int", "float"};
 
-  while(tmp!= nullptr){
+  while (tmp != nullptr) {
     bool nullable = true;
     bool unique = false;
-    if(tmp->val_ == constraint[0]){
+    if (tmp->val_ == constraint[0]) {
       unique = true;
-    }else if(tmp->val_ == constraint[1]){
+    } else if (tmp->val_ == constraint[1]) {
       nullable = false;
-    }else if(tmp->val_ == constraint[2]){
+    } else if (tmp->val_ == constraint[2]) {
       unique = true;
       nullable = false;
-      //TODO:
+      // TODO:
     }
     pSyntaxNode attr = tmp->child_;
     column_name = attr->val_;
     pSyntaxNode type = tmp->next_;
 
-    if(type->val_ == TYPE[0]){
+    if (type->val_ == TYPE[0]) {
       type_ = kTypeChar;
       pSyntaxNode size = type->child_;
       len = StringToInt(size->val_);
-      Column cur_col(column_name,type_,len,index,nullable,unique);
+      Column cur_col(column_name, type_, len, index, nullable, unique);
       columns.push_back(&cur_col);
       index++;
       tmp = tmp->next_;
-    }else{
-      if(type->val_ == TYPE[1]){
+    } else {
+      if (type->val_ == TYPE[1]) {
         type_ = kTypeInt;
-      }else if(type->val_ == TYPE[2]){
+      } else if (type->val_ == TYPE[2]) {
         type_ = kTypeFloat;
       }
-      Column cur_col(column_name,type_,index,nullable,unique);
+      Column cur_col(column_name, type_, index, nullable, unique);
       columns.push_back(&cur_col);
       index++;
       tmp = tmp->next_;
     }
   }
   TableSchema schema(columns);
-  if(cata->CreateTable(table_name,&schema,nullptr,table_info) == DB_SUCCESS){
+  if (cata->CreateTable(table_name, &schema, nullptr, table_info) == DB_SUCCESS) {
     printf("[INFO] Create table successfully!\n");
     return DB_SUCCESS;
-  }else{
+  } else {
     printf("[ERROR] Create table failed!\n");
     return DB_FAILED;
   }
   return DB_SUCCESS;
-
 }
 
 dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context) {
@@ -229,10 +237,10 @@ dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context
   CatalogManager *cata = engine->catalog_mgr_;
 
   string table_name = tmp->val_;
-  if(cata->DropTable(table_name) != DB_SUCCESS){
+  if (cata->DropTable(table_name) != DB_SUCCESS) {
     printf("[ERROR] No such table!\n");
     return DB_FAILED;
-  }else{
+  } else {
     printf("[INFO] Drop successfully!\n");
     return DB_SUCCESS;
   }
@@ -242,7 +250,26 @@ dberr_t ExecuteEngine::ExecuteShowIndexes(pSyntaxNode ast, ExecuteContext *conte
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteShowIndexes" << std::endl;
 #endif
-  return DB_FAILED;
+  DBStorageEngine *engine = (dbs_.find(current_db_))->second;
+  CatalogManager *cata = engine->catalog_mgr_;
+  std::vector<TableInfo *> tables;
+  std::vector<IndexInfo *> indexes;
+  cata->GetTables(tables);
+
+  if (tables.empty()) {
+    printf("[INFO] There aren't any tables!\n");
+    return DB_FAILED;
+  } else {
+    printf("[TITLE] Index_in_%s\n", current_db_.c_str());
+    for (auto iter = tables.begin(); iter != tables.end(); ++iter) {
+      printf("[TITLE] _Index_in%s\n", (*iter)->GetTableName().c_str());
+      cata->GetTableIndexes((*iter)->GetTableName(), indexes);
+      for (auto iter = indexes.begin(); iter != indexes.end(); ++iter) {
+        printf("[INDEX] %s\n", (*iter)->GetIndexName().c_str());
+      }
+    }
+    return DB_SUCCESS;
+  }
 }
 
 dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *context) {
@@ -256,21 +283,21 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
 
   tmp = tmp->next_;
   string table_name = tmp->val_;
-  index_.insert({index_name,table_name});
+  index_.insert({index_name, table_name});
 
   vector<string> index_keys;
   tmp = tmp->next_;
   tmp = tmp->child_;
-  while(tmp!=nullptr){
+  while (tmp != nullptr) {
     index_keys.push_back(tmp->val_);
     tmp = tmp->next_;
   }
 
   IndexInfo *index_info;
-  if(cata->CreateIndex(table_name,index_name,index_keys,nullptr,index_info)!=DB_SUCCESS){
-      printf("[ERROR] Create index failed!\n");
-      return DB_FAILED;
-  }else{
+  if (cata->CreateIndex(table_name, index_name, index_keys, nullptr, index_info) != DB_SUCCESS) {
+    printf("[ERROR] Create index failed!\n");
+    return DB_FAILED;
+  } else {
     printf("[INFO] Create index successfully!\n");
     return DB_SUCCESS;
   }
@@ -289,9 +316,8 @@ dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context
 
   string table_name = (index_.find(index_name))->first;
 
-  cata->DropIndex(table_name,index_name);
+  cata->DropIndex(table_name, index_name);
 
-  
   return DB_FAILED;
 }
 
@@ -299,6 +325,7 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteSelect" << std::endl;
 #endif
+
   return DB_FAILED;
 }
 
@@ -306,13 +333,55 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteInsert" << std::endl;
 #endif
-  return DB_FAILED;
+  pSyntaxNode tmp = ast->child_;
+  DBStorageEngine *engine = (dbs_.find(current_db_))->second;
+  CatalogManager *cata = engine->catalog_mgr_;
+
+  string table_name;
+  TableInfo *table_info;
+  pSyntaxNode tmp = ast->child_;
+  table_name = tmp->val_;
+  std::vector<Field *> fields_;
+
+  tmp = tmp->next_;
+  tmp = tmp->child_;
+  cata->GetTable(table_name, table_info);
+  while (tmp != NULL) {
+    //加到fields_里
+    if (tmp->type_ == kNodeNumber) {
+    } else if (tmp->type_ == kNodeString) {
+    } else if (tmp->type_ == kNodeNull) {
+    } else if (tmp->type_ == kNodeNumber) {
+    }
+
+    tmp = tmp->next_;
+  }
+  //构造row
+  Row &row();
+  Transaction *txn;
+
+  TableHeap *heap = table_info->GetTableHeap();
+
+  if (heap->InsertTuple(row, txn)) {
+    cout << "[INFO] Insert successfully!" << endl;
+    return DB_SUCCESS;
+  } else {
+    cout << "[INFO] Insert Failed!" << endl;
+    return DB_FAILED;
+  }
 }
 
 dberr_t ExecuteEngine::ExecuteDelete(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteDelete" << std::endl;
 #endif
+  pSyntaxNode tmp = ast->child_;
+  DBStorageEngine *engine = (dbs_.find(current_db_))->second;
+  CatalogManager *cata = engine->catalog_mgr_;
+  if (tmp->next_ == NULL) {
+    //全删
+  } else {
+  }
   return DB_FAILED;
 }
 
@@ -359,4 +428,3 @@ dberr_t ExecuteEngine::ExecuteQuit(pSyntaxNode ast, ExecuteContext *context) {
   context->flag_quit_ = true;
   return DB_SUCCESS;
 }
-
