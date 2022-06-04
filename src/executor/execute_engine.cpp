@@ -81,41 +81,40 @@ bool isFloat(string str) {
   return false;
 }
 
-bool DFS(pSyntaxNode ast,TableIterator iter,Schema *schema){
-  if(ast->type_ == kNodeCompareOperator){
-
+bool DFS(pSyntaxNode ast, TableIterator iter, Schema *schema) {
+  if (ast->type_ == kNodeCompareOperator) {
     pSyntaxNode attr = ast->child_;
     pSyntaxNode val = attr->next_;
-    const char* r_value = val->val_;
-    
+    const char *r_value = val->val_;
+
     uint32_t index;
     string col_name = attr->val_;
-    schema->GetColumnIndex(col_name,index);
+    schema->GetColumnIndex(col_name, index);
     Field *fie = iter->GetField(index);
     const char *l_value = fie->GetData();
     auto item = ast->val_;
-    if(item == "=" && l_value == r_value)
+    if (item == (char *)"=" && l_value == r_value)
       return true;
-    else if(item == ">" && strcmp(l_value,r_value)>0)
+    else if (item == (char *)">" && strcmp(l_value, r_value) > 0)
       return true;
-    else if(item == ">=" && strcmp(l_value,r_value)>=0)
+    else if (item == (char *)">=" && strcmp(l_value, r_value) >= 0)
       return true;
-    else if(item == "<=" && strcmp(l_value,r_value)<=0)
+    else if (item == (char *)"<=" && strcmp(l_value, r_value) <= 0)
       return true;
-    else if(item == "<" && strcmp(l_value,r_value)<0)
+    else if (item == (char *)"<" && strcmp(l_value, r_value) < 0)
       return true;
-    else if(item == "<>" && strcmp(l_value,r_value)!=0)
+    else if (item == (char *)"<>" && strcmp(l_value, r_value) != 0)
       return true;
-    
+
     return false;
-  }else if(ast->type_ == kNodeConnector){
-    if(ast->val_ == "and" && DFS(ast->child_,iter,schema) && DFS(ast->child_->next_,iter,schema))
+  } else if (ast->type_ == kNodeConnector) {
+    if (ast->val_ == (char *)"and" && DFS(ast->child_, iter, schema) && DFS(ast->child_->next_, iter, schema))
       return true;
-    else if(ast->val_ == "or" && (DFS(ast->child_,iter,schema) || DFS(ast->child_->next_,iter,schema)))
+    else if (ast->val_ == (char *)"or" && (DFS(ast->child_, iter, schema) || DFS(ast->child_->next_, iter, schema)))
       return true;
-    
+
     return false;
-  }
+  }else return false;
 }
 
 dberr_t ExecuteEngine::ExecuteCreateDatabase(pSyntaxNode ast, ExecuteContext *context) {
@@ -128,7 +127,7 @@ dberr_t ExecuteEngine::ExecuteCreateDatabase(pSyntaxNode ast, ExecuteContext *co
     printf("[INFO] This database has existed!\n");
     return DB_FAILED;
   } else {
-    DBStorageEngine *engine = new DBStorageEngine(db_name,true);
+    DBStorageEngine *engine = new DBStorageEngine(db_name, true);
     dbs_.insert({db_name, engine});
     return DB_SUCCESS;
   }
@@ -191,7 +190,7 @@ dberr_t ExecuteEngine::ExecuteShowTables(pSyntaxNode ast, ExecuteContext *contex
   DBStorageEngine *engine = (dbs_.find(current_db_))->second;
   CatalogManager *cata = engine->catalog_mgr_;
   std::vector<TableInfo *> tables;
-  if(cata->GetTables(tables) == DB_FAILED){
+  if (cata->GetTables(tables) == DB_FAILED) {
     printf("[INFO] There aren't any tables!\n");
     return DB_FAILED;
   } else {
@@ -246,7 +245,7 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
       pSyntaxNode size = type->child_;
       len = StringToInt(size->val_);
 
-      Column* cur_col = new Column(column_name, type_, len, index, nullable, unique);
+      Column *cur_col = new Column(column_name, type_, len, index, nullable, unique);
       columns.push_back(cur_col);
       index++;
       tmp = tmp->next_;
@@ -256,7 +255,7 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
       } else if (type->val_ == TYPE[2]) {
         type_ = kTypeFloat;
       }
-      Column* cur_col = new Column(column_name, type_, index, nullable, unique);
+      Column *cur_col = new Column(column_name, type_, index, nullable, unique);
       columns.push_back(cur_col);
       index++;
       tmp = tmp->next_;
@@ -300,24 +299,24 @@ dberr_t ExecuteEngine::ExecuteShowIndexes(pSyntaxNode ast, ExecuteContext *conte
   std::vector<TableInfo *> tables;
   std::vector<IndexInfo *> indexes;
   int flag = 0;
-  
-  if(cata->GetTables(tables) != DB_SUCCESS){
+
+  if (cata->GetTables(tables) != DB_SUCCESS) {
     printf("[INFO] There aren't any indexes!\n");
     return DB_INDEX_NOT_FOUND;
   } else {
-    for(auto table : tables){
+    for (auto table : tables) {
       indexes.clear();
-      if(cata->GetTableIndexes(table->GetTableName(),indexes) == DB_SUCCESS){
+      if (cata->GetTableIndexes(table->GetTableName(), indexes) == DB_SUCCESS) {
         flag = 1;
-        printf("[TITLE] Indexes Of Table %s\n",table->GetTableName().c_str());
-        for(auto index : indexes){
-          printf("[INDEX] %s\n",index->GetIndexName().c_str());
+        printf("[TITLE] Indexes Of Table %s\n", table->GetTableName().c_str());
+        for (auto index : indexes) {
+          printf("[INDEX] %s\n", index->GetIndexName().c_str());
         }
       }
       printf("\n");
     }
   }
-  if(!flag){
+  if (!flag) {
     printf("[INFO] There aren't any indexes!\n");
     return DB_INDEX_NOT_FOUND;
   }
@@ -469,53 +468,65 @@ dberr_t ExecuteEngine::ExecuteDelete(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteDelete" << std::endl;
 #endif
-   pSyntaxNode tmp = ast->child_;
-   DBStorageEngine *engine = (dbs_.find(current_db_))->second;
-   CatalogManager *cata = engine->catalog_mgr_;
-   if (tmp->next_ == NULL) {
-     string table_name = tmp->val_;
-     TableInfo *table_info;
-     std::vector<IndexInfo *> indexes;
-     cata->GetTable(table_name,table_info);
-     cata->GetTableIndexes(table_name,indexes);
-     TableHeap *table_heap = table_info->GetTableHeap();
-     for(auto iter = table_heap->Begin(nullptr);iter != table_heap->End();iter++){
-        if(indexes.size()!=0){
-          for(auto index : indexes){
-            Index *idx = index->GetIndex();
-            std::vector<Field> fields_;
-            IndexMetadata *meta = index->GetMetadata();
-            std::vector<uint32_t> key_map = meta->GetKeyMapping();
-            for(auto id : key_map){
-              fields_.push_back(*(iter->GetField(id)));
-            }
-            Row delete_row(fields_);
-            RowId tmp;
-            idx->RemoveEntry(delete_row,tmp,nullptr);
+  pSyntaxNode tmp = ast->child_;
+  DBStorageEngine *engine = (dbs_.find(current_db_))->second;
+  CatalogManager *cata = engine->catalog_mgr_;
+  if (tmp->next_ == NULL) {
+    string table_name = tmp->val_;
+    TableInfo *table_info;
+    std::vector<IndexInfo *> indexes;
+    cata->GetTable(table_name, table_info);
+    cata->GetTableIndexes(table_name, indexes);
+    TableHeap *table_heap = table_info->GetTableHeap();
+    for (auto iter = table_heap->Begin(nullptr); iter != table_heap->End(); iter++) {
+      if (indexes.size() != 0) {
+        for (auto index : indexes) {
+          Index *idx = index->GetIndex();
+          std::vector<Field> fields_;
+          IndexMetadata *meta = index->GetMetadata();
+          std::vector<uint32_t> key_map = meta->GetKeyMapping();
+          for (auto id : key_map) {
+            fields_.push_back(*(iter->GetField(id)));
           }
-        }
-        table_heap->MarkDelete(iter->GetRowId(),nullptr);
-     }
-   }else{
-      string table_name = tmp->val_;
-      TableInfo *table_info;
-      std::vector<IndexInfo *> indexes;
-      cata->GetTable(table_name,table_info);
-      Schema *schema = table_info->GetSchema();
-      TableHeap *table_heap = table_info->GetTableHeap();
-      tmp = tmp->next_;
-      tmp = tmp->child_;
-      cata->GetTableIndexes(table_name,indexes);
-      for(auto iter = table_heap->Begin(nullptr);iter != table_heap->End();iter++){
-        if(DFS(tmp,iter,schema)){
-          
+          Row delete_row(fields_);
+          RowId tmp;
+          idx->RemoveEntry(delete_row, tmp, nullptr);
         }
       }
-
-   }
+      table_heap->MarkDelete(iter->GetRowId(), nullptr);
+    }
+  } else {
+    string table_name = tmp->val_;
+    TableInfo *table_info;
+    std::vector<IndexInfo *> indexes;
+    cata->GetTable(table_name, table_info);
+    Schema *schema = table_info->GetSchema();
+    TableHeap *table_heap = table_info->GetTableHeap();
+    tmp = tmp->next_;
+    tmp = tmp->child_;
+    cata->GetTableIndexes(table_name, indexes);
+    for (auto iter = table_heap->Begin(nullptr); iter != table_heap->End(); iter++) {
+      if (DFS(tmp, iter, schema)) {
+        if (indexes.size() != 0) {
+          for (auto index : indexes) {
+            Index *idx = index->GetIndex();
+            IndexMetadata *meta = index->GetMetadata();
+            std::vector<uint32_t> key_map = meta->GetKeyMapping();
+            std::vector<Field> fields;
+            for (auto id : key_map) {
+              fields.push_back(*(iter->GetField(id)));
+            }
+            Row delete_row(fields);
+            RowId tmp;
+            idx->RemoveEntry(delete_row, tmp, nullptr);
+          }
+        }
+        table_heap->MarkDelete(iter->GetRowId(), nullptr);
+      }
+    }
+  }
   return DB_FAILED;
 }
-
 
 dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
