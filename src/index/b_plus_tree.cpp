@@ -13,11 +13,20 @@ BPLUSTREE_TYPE::BPlusTree(index_id_t index_id, BufferPoolManager *buffer_pool_ma
       comparator_(comparator),
       leaf_max_size_(leaf_max_size),
       internal_max_size_(internal_max_size + 1) {
-  root_page_id_ = INVALID_PAGE_ID;
+  auto *page = buffer_pool_manager_->FetchPage(INDEX_ROOTS_PAGE_ID);
+  if (page != nullptr){
+    auto *header = reinterpret_cast<IndexRootsPage *>(page->GetData());
+    if(!header->GetRootId(index_id,&root_page_id_)) root_page_id_ = INVALID_PAGE_ID;
+    buffer_pool_manager_->UnpinPage(INDEX_ROOTS_PAGE_ID,false);
+  }else root_page_id_ = INVALID_PAGE_ID;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void BPLUSTREE_TYPE::Destroy() {}
+void BPLUSTREE_TYPE::Destroy() {
+
+  
+  
+}
 
 /*
  * Helper function to decide whether current b+tree is empty

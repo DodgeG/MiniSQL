@@ -96,12 +96,23 @@ class TableHeap {
   /**
    * create table heap and initialize first page
    */
+<<<<<<< HEAD
   explicit TableHeap(BufferPoolManager *buffer_pool_manager, Schema *schema, Transaction *txn, LogManager *log_manager,
                      LockManager *lock_manager)
       : buffer_pool_manager_(buffer_pool_manager),
         schema_(schema),
         log_manager_(log_manager),
         lock_manager_(lock_manager) {
+=======
+  explicit TableHeap(BufferPoolManager *buffer_pool_manager, Schema *schema, Transaction *txn,
+                     LogManager *log_manager, LockManager *lock_manager) :
+          buffer_pool_manager_(buffer_pool_manager),
+          schema_(schema),
+          log_manager_(log_manager),
+          lock_manager_(lock_manager) {
+
+    // ASSERT(false, "Not implemented yet.");
+>>>>>>> 6aae33e00c032adb9a0312af48e214755eaa3c03
     auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->NewPage(first_page_id_));
     page->Init(first_page_id_, INVALID_PAGE_ID, log_manager, txn);
     buffer_pool_manager_->UnpinPage(first_page_id_, true);

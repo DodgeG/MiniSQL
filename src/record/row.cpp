@@ -26,8 +26,9 @@ uint32_t Row::DeserializeFrom(char *buf, Schema *schema) {
   uint32_t ofs = sizeof(int64_t);
   size_t size = MACH_READ_FROM(size_t, buf + ofs);
   ofs += sizeof(size_t);
-  // unsigned char bitmap[(fields_.size() + 7) / 8] = {}; // malloc in stack
-  unsigned char *bitmap = new unsigned char[(fields_.size() + 7) / 8];
+  // unsigned char bitmap[(size + 7) / 8] = {}; // malloc in stack
+  ASSERT(fields_.size() == 0, "Row is not empty");
+  unsigned char *bitmap = new unsigned char[(size + 7) / 8];
   memcpy(bitmap, buf + ofs, (size + 7) / 8);
   ofs += (size + 7) / 8;
   for (size_t i = 0; i < size; ++i) {

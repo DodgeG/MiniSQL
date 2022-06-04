@@ -351,7 +351,6 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
     if (tmp->type_ == kNodeNumber) {
     } else if (tmp->type_ == kNodeString) {
     } else if (tmp->type_ == kNodeNull) {
-    } else if (tmp->type_ == kNodeNumber) {
     }
 
     tmp = tmp->next_;
@@ -381,6 +380,7 @@ dberr_t ExecuteEngine::ExecuteDelete(pSyntaxNode ast, ExecuteContext *context) {
   if (tmp->next_ == NULL) {
     //全删
   } else {
+    //条件
   }
   return DB_FAILED;
 }
@@ -389,7 +389,48 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteUpdate" << std::endl;
 #endif
+  pSyntaxNode tmp = ast->child_;
+  DBStorageEngine *engine = (dbs_.find(current_db_))->second;
+  CatalogManager *cata = engine->catalog_mgr_;
+
+  string table_name;
+  TableInfo *table_info;
+  pSyntaxNode tmp = ast->child_;
+  table_name = tmp->val_;
+  std::vector<Field *> fields_;
+
+  tmp = tmp->next_;                  // upadate
+  pSyntaxNode tmp_con = tmp->next_;  // condition
+  tmp = tmp->child_;
+  cata->GetTable(table_name, table_info);
+  while (tmp != NULL) {
+    //加到fields_里
+    if (tmp->child_->next_->type_ == kNodeNumber) {
+    } else if (tmp->child_->next_->type_ == kNodeString) {
+    } else if (tmp->child_->next_->type_ == kNodeNull) {
+    }
+
+    tmp = tmp->next_;
+  }
+
   return DB_FAILED;
+}
+
+dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context) {
+#ifdef ENABLE_EXECUTE_DEBUG
+  LOG(INFO) << "ExecuteExecfile" << std::endl;
+#endif
+  string file = ast->child_->val_;
+  return DB_FAILED;
+}
+
+dberr_t ExecuteEngine::ExecuteQuit(pSyntaxNode ast, ExecuteContext *context) {
+#ifdef ENABLE_EXECUTE_DEBUG
+  LOG(INFO) << "ExecuteQuit" << std::endl;
+#endif
+  ASSERT(ast->type_ == kNodeQuit, "Unexpected node type.");
+  context->flag_quit_ = true;
+  return DB_SUCCESS;
 }
 
 dberr_t ExecuteEngine::ExecuteTrxBegin(pSyntaxNode ast, ExecuteContext *context) {
@@ -411,20 +452,4 @@ dberr_t ExecuteEngine::ExecuteTrxRollback(pSyntaxNode ast, ExecuteContext *conte
   LOG(INFO) << "ExecuteTrxRollback" << std::endl;
 #endif
   return DB_FAILED;
-}
-
-dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context) {
-#ifdef ENABLE_EXECUTE_DEBUG
-  LOG(INFO) << "ExecuteExecfile" << std::endl;
-#endif
-  return DB_FAILED;
-}
-
-dberr_t ExecuteEngine::ExecuteQuit(pSyntaxNode ast, ExecuteContext *context) {
-#ifdef ENABLE_EXECUTE_DEBUG
-  LOG(INFO) << "ExecuteQuit" << std::endl;
-#endif
-  ASSERT(ast->type_ == kNodeQuit, "Unexpected node type.");
-  context->flag_quit_ = true;
-  return DB_SUCCESS;
 }

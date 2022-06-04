@@ -129,15 +129,15 @@ TEST(CatalogTest, CatalogTableTest) {
   ASSERT_EQ(table_info, table_info_02);
   auto *table_heap = table_info->GetTableHeap();
   ASSERT_TRUE(table_heap != nullptr);
-  // catalog_01->DropTable("table-1");
-  // ASSERT_EQ(DB_SUCCESS, catalog_01->DropTable("table-1"));
+  //catalog_01->DropTable("table-1");
+  ASSERT_EQ(DB_SUCCESS, catalog_01->DropTable("table-1"));
   delete db_01;
   // Stage 2: Testing catalog loading
   auto db_02 = new DBStorageEngine(db_file_name, false);
   auto &catalog_02 = db_02->catalog_mgr_;
   TableInfo *table_info_03 = nullptr;
   ASSERT_EQ(DB_TABLE_NOT_EXIST, catalog_02->GetTable("table-2", table_info_03));
-  ASSERT_EQ(DB_SUCCESS, catalog_02->GetTable("table-1", table_info_03));
+  ASSERT_EQ(DB_TABLE_NOT_EXIST, catalog_02->GetTable("table-1", table_info_03));
   delete db_02;
 }
 
