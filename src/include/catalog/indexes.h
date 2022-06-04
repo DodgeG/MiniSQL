@@ -80,8 +80,7 @@ public:
     }
 
     key_schema_ = new Schema(cols);
-    
-    // Step3: call CreateIndex to create the index
+  
     index_ = CreateIndex(buffer_pool_manager);
   }
 
@@ -94,6 +93,8 @@ public:
   inline MemHeap *GetMemHeap() const { return heap_; }
 
   inline TableInfo *GetTableInfo() const { return table_info_; }
+
+  inline IndexMetadata *GetMetadata() const{ return meta_data_; }
 
 private:
   explicit IndexInfo() : meta_data_{nullptr}, index_{nullptr}, table_info_{nullptr},

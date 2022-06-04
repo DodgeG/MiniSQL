@@ -119,6 +119,7 @@ CatalogManager::CatalogManager(BufferPoolManager *buffer_pool_manager, LockManag
       index_page->RUnlatch();
       buffer_pool_manager_->UnpinPage(page.second, false);
     }
+    buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID,false);
   }
 }
 
@@ -287,7 +288,14 @@ dberr_t CatalogManager::CreateIndex(const std::string &table_name, const string 
 
 dberr_t CatalogManager::GetIndex(const std::string &table_name, const std::string &index_name,
                                  IndexInfo *&index_info) const {
-  index_id_t new_index_id = (index_names_.find(table_name)->second).find(index_name)->second;
+  auto iter1 = index_names_.find(table_name);
+  if(iter1 == index_names_.end())
+    return DB_INDEX_NOT_FOUND;
+  auto iter2 = (iter1->second).find(index_name);
+  if(iter2 == (iter1->second).end())
+    return DB_INDEX_NOT_FOUND;
+
+  index_id_t new_index_id = iter2->second;
   index_info = indexes_.find(new_index_id)->second;
 
   return DB_SUCCESS;

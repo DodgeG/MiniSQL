@@ -59,6 +59,7 @@ uint32_t StringToInt(char *s) {
   }
   return len;
 }
+
 float StringToFloat(char *s) {
   float len = 0;
   int i = 0, j = 0;
@@ -66,11 +67,55 @@ float StringToFloat(char *s) {
     len = len * 10 + s[i] - '0';
   }
   ++i;
-  for (; s[i] != '\0'; ++i, ) {
+  for (; s[i] != '\0'; ++i) {
     len = len * 10 + s[i] - '0';
     j++;
   }
   return len / (pow(10, j));
+}
+
+bool isFloat(string str) {
+  for (int i = 0; str[i] != '\0'; i++) {
+    if (str[i] == '.') return true;
+  }
+  return false;
+}
+
+bool DFS(pSyntaxNode ast,TableIterator iter,Schema *schema){
+  if(ast->type_ == kNodeCompareOperator){
+
+    pSyntaxNode attr = ast->child_;
+    pSyntaxNode val = attr->next_;
+    const char* r_value = val->val_;
+    
+    uint32_t index;
+    string col_name = attr->val_;
+    schema->GetColumnIndex(col_name,index);
+    Field *fie = iter->GetField(index);
+    const char *l_value = fie->GetData();
+    auto item = ast->val_;
+    if(item == "=" && l_value == r_value)
+      return true;
+    else if(item == ">" && strcmp(l_value,r_value)>0)
+      return true;
+    else if(item == ">=" && strcmp(l_value,r_value)>=0)
+      return true;
+    else if(item == "<=" && strcmp(l_value,r_value)<=0)
+      return true;
+    else if(item == "<" && strcmp(l_value,r_value)<0)
+      return true;
+    else if(item == "<>" && strcmp(l_value,r_value)!=0)
+      return true;
+    
+    return false;
+  }else if(ast->type_ == kNodeConnector){
+    if(ast->val_ == "and" && DFS(ast->child_,iter,schema) && DFS(ast->child_->next_,iter,schema))
+      return true;
+    else if(ast->val_ == "or" && (DFS(ast->child_,iter,schema) || DFS(ast->child_->next_,iter,schema)))
+      return true;
+    
+    return false;
+  }
 }
 
 dberr_t ExecuteEngine::ExecuteCreateDatabase(pSyntaxNode ast, ExecuteContext *context) {
@@ -83,8 +128,8 @@ dberr_t ExecuteEngine::ExecuteCreateDatabase(pSyntaxNode ast, ExecuteContext *co
     printf("[INFO] This database has existed!\n");
     return DB_FAILED;
   } else {
-    DBStorageEngine engine(db_name);
-    dbs_.insert({db_name, &engine});
+    DBStorageEngine *engine = new DBStorageEngine(db_name,true);
+    dbs_.insert({db_name, engine});
     return DB_SUCCESS;
   }
 }
@@ -146,9 +191,7 @@ dberr_t ExecuteEngine::ExecuteShowTables(pSyntaxNode ast, ExecuteContext *contex
   DBStorageEngine *engine = (dbs_.find(current_db_))->second;
   CatalogManager *cata = engine->catalog_mgr_;
   std::vector<TableInfo *> tables;
-  cata->GetTables(tables);
-
-  if (tables.empty()) {
+  if(cata->GetTables(tables) == DB_FAILED){
     printf("[INFO] There aren't any tables!\n");
     return DB_FAILED;
   } else {
@@ -184,25 +227,27 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
   while (tmp != nullptr) {
     bool nullable = true;
     bool unique = false;
-    if (tmp->val_ == constraint[0]) {
-      unique = true;
-    } else if (tmp->val_ == constraint[1]) {
-      nullable = false;
-    } else if (tmp->val_ == constraint[2]) {
-      unique = true;
-      nullable = false;
-      // TODO:
+    if (tmp->val_ != NULL) {
+      if (tmp->val_ == constraint[0]) {
+        unique = true;
+      } else if (tmp->val_ == constraint[1]) {
+        nullable = false;
+      } else if (tmp->val_ == constraint[2]) {
+        unique = true;
+        nullable = false;
+      }
     }
     pSyntaxNode attr = tmp->child_;
     column_name = attr->val_;
-    pSyntaxNode type = tmp->next_;
+    pSyntaxNode type = attr->next_;
 
     if (type->val_ == TYPE[0]) {
       type_ = kTypeChar;
       pSyntaxNode size = type->child_;
       len = StringToInt(size->val_);
-      Column cur_col(column_name, type_, len, index, nullable, unique);
-      columns.push_back(&cur_col);
+
+      Column* cur_col = new Column(column_name, type_, len, index, nullable, unique);
+      columns.push_back(cur_col);
       index++;
       tmp = tmp->next_;
     } else {
@@ -211,14 +256,14 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
       } else if (type->val_ == TYPE[2]) {
         type_ = kTypeFloat;
       }
-      Column cur_col(column_name, type_, index, nullable, unique);
-      columns.push_back(&cur_col);
+      Column* cur_col = new Column(column_name, type_, index, nullable, unique);
+      columns.push_back(cur_col);
       index++;
       tmp = tmp->next_;
     }
   }
-  TableSchema schema(columns);
-  if (cata->CreateTable(table_name, &schema, nullptr, table_info) == DB_SUCCESS) {
+  TableSchema *schema = new TableSchema(columns);
+  if (cata->CreateTable(table_name, schema, nullptr, table_info) == DB_SUCCESS) {
     printf("[INFO] Create table successfully!\n");
     return DB_SUCCESS;
   } else {
@@ -239,7 +284,7 @@ dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context
   string table_name = tmp->val_;
   if (cata->DropTable(table_name) != DB_SUCCESS) {
     printf("[ERROR] No such table!\n");
-    return DB_FAILED;
+    return DB_TABLE_NOT_EXIST;
   } else {
     printf("[INFO] Drop successfully!\n");
     return DB_SUCCESS;
@@ -254,22 +299,30 @@ dberr_t ExecuteEngine::ExecuteShowIndexes(pSyntaxNode ast, ExecuteContext *conte
   CatalogManager *cata = engine->catalog_mgr_;
   std::vector<TableInfo *> tables;
   std::vector<IndexInfo *> indexes;
-  cata->GetTables(tables);
-
-  if (tables.empty()) {
-    printf("[INFO] There aren't any tables!\n");
-    return DB_FAILED;
+  int flag = 0;
+  
+  if(cata->GetTables(tables) != DB_SUCCESS){
+    printf("[INFO] There aren't any indexes!\n");
+    return DB_INDEX_NOT_FOUND;
   } else {
-    printf("[TITLE] Index_in_%s\n", current_db_.c_str());
-    for (auto iter = tables.begin(); iter != tables.end(); ++iter) {
-      printf("[TITLE] _Index_in%s\n", (*iter)->GetTableName().c_str());
-      cata->GetTableIndexes((*iter)->GetTableName(), indexes);
-      for (auto iter = indexes.begin(); iter != indexes.end(); ++iter) {
-        printf("[INDEX] %s\n", (*iter)->GetIndexName().c_str());
+    for(auto table : tables){
+      indexes.clear();
+      if(cata->GetTableIndexes(table->GetTableName(),indexes) == DB_SUCCESS){
+        flag = 1;
+        printf("[TITLE] Indexes Of Table %s\n",table->GetTableName().c_str());
+        for(auto index : indexes){
+          printf("[INDEX] %s\n",index->GetIndexName().c_str());
+        }
       }
+      printf("\n");
     }
-    return DB_SUCCESS;
   }
+  if(!flag){
+    printf("[INFO] There aren't any indexes!\n");
+    return DB_INDEX_NOT_FOUND;
+  }
+
+  return DB_SUCCESS;
 }
 
 dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *context) {
@@ -283,7 +336,6 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
 
   tmp = tmp->next_;
   string table_name = tmp->val_;
-  index_.insert({index_name, table_name});
 
   vector<string> index_keys;
   tmp = tmp->next_;
@@ -298,11 +350,25 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
     printf("[ERROR] Create index failed!\n");
     return DB_FAILED;
   } else {
+    IndexMetadata *meta = index_info->GetMetadata();
+    std::vector<uint32_t> key_map = meta->GetKeyMapping();
+    TableInfo *table_info = index_info->GetTableInfo();
+    TableHeap *table_heap = table_info->GetTableHeap();
+    TableIterator iter = table_heap->Begin(nullptr);
+    Index *index_ = index_info->GetIndex();
+    std::vector<Field> field;
+    while (iter != table_heap->End()) {
+      field.clear();
+      for (auto ind : key_map) {
+        field.push_back(*(iter->GetField(ind)));
+      }
+      Row entry(field);
+      index_->InsertEntry(entry, iter->GetRowId(), nullptr);
+    }
+
     printf("[INFO] Create index successfully!\n");
     return DB_SUCCESS;
   }
-
-  return DB_SUCCESS;
 }
 
 dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context) {
@@ -314,11 +380,18 @@ dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context
   pSyntaxNode tmp = ast->child_;
   string index_name = tmp->val_;
 
-  string table_name = (index_.find(index_name))->first;
-
-  cata->DropIndex(table_name, index_name);
-
-  return DB_FAILED;
+  std::vector<TableInfo *> tables;
+  cata->GetTables(tables);
+  for (auto table : tables) {
+    IndexInfo *tmp;
+    if (cata->GetIndex(table->GetTableName(), index_name, tmp) == DB_SUCCESS) {
+      cata->DropIndex(table->GetTableName(), index_name);
+      printf("[ERROR] Drop index successfully!\n");
+      return DB_SUCCESS;
+    }
+  }
+  printf("[ERROR] Drop failed!\n");
+  return DB_INDEX_NOT_FOUND;
 }
 
 dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
@@ -339,57 +412,116 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
 
   string table_name;
   TableInfo *table_info;
-  pSyntaxNode tmp = ast->child_;
   table_name = tmp->val_;
-  std::vector<Field *> fields_;
+  std::vector<Field> fields_;
 
   tmp = tmp->next_;
   tmp = tmp->child_;
   cata->GetTable(table_name, table_info);
+
   while (tmp != NULL) {
     //加到fields_里
+    Field *fie = NULL;
     if (tmp->type_ == kNodeNumber) {
-    } else if (tmp->type_ == kNodeString) {
-    } else if (tmp->type_ == kNodeNull) {
-    }
+      if (isFloat(tmp->val_)) {
+        fie = new Field(kTypeFloat, StringToFloat(tmp->val_));
 
+      } else {
+        fie = new Field(kTypeInt, (int32_t)StringToInt(tmp->val_));
+      }
+    } else if (tmp->type_ == kNodeString) {
+      fie = new Field(kTypeChar, tmp->val_, strlen(tmp->val_), false);
+    } else if (tmp->type_ == kNodeNull) {
+      fie = new Field(kTypeInvalid);
+    }
+    fields_.push_back(*fie);
     tmp = tmp->next_;
   }
   //构造row
-  Row &row();
-  Transaction *txn;
-
-  TableHeap *heap = table_info->GetTableHeap();
-
-  if (heap->InsertTuple(row, txn)) {
-    cout << "[INFO] Insert successfully!" << endl;
-    return DB_SUCCESS;
-  } else {
-    cout << "[INFO] Insert Failed!" << endl;
-    return DB_FAILED;
+  TableHeap *table_heap = table_info->GetTableHeap();
+  Row row(fields_);
+  table_heap->InsertTuple(row, nullptr);
+  std::vector<IndexInfo *> indexes;
+  if (cata->GetTableIndexes(table_name, indexes) == DB_SUCCESS) {
+    for (auto index_info : indexes) {
+      IndexMetadata *meta = index_info->GetMetadata();
+      std::vector<uint32_t> key_map = meta->GetKeyMapping();
+      Index *index_ = index_info->GetIndex();
+      std::vector<Field> fies;
+      for (auto id : key_map) {
+        fies.push_back(fields_.at(id));
+      }
+      Row row_index(fies);
+      if (index_->InsertEntry(row_index, row.GetRowId(), nullptr) == DB_SUCCESS) {
+        printf("[INFO] Insert successfully!\n");
+        return DB_SUCCESS;
+      } else {
+        printf("[INFO] Insert failed!\n");
+        return DB_FAILED;
+      }
+    }
   }
+
+  return DB_SUCCESS;
 }
 
 dberr_t ExecuteEngine::ExecuteDelete(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteDelete" << std::endl;
 #endif
-  pSyntaxNode tmp = ast->child_;
-  DBStorageEngine *engine = (dbs_.find(current_db_))->second;
-  CatalogManager *cata = engine->catalog_mgr_;
-  if (tmp->next_ == NULL) {
-    //全删
-  } else {
-    //条件
-  }
+   pSyntaxNode tmp = ast->child_;
+   DBStorageEngine *engine = (dbs_.find(current_db_))->second;
+   CatalogManager *cata = engine->catalog_mgr_;
+   if (tmp->next_ == NULL) {
+     string table_name = tmp->val_;
+     TableInfo *table_info;
+     std::vector<IndexInfo *> indexes;
+     cata->GetTable(table_name,table_info);
+     cata->GetTableIndexes(table_name,indexes);
+     TableHeap *table_heap = table_info->GetTableHeap();
+     for(auto iter = table_heap->Begin(nullptr);iter != table_heap->End();iter++){
+        if(indexes.size()!=0){
+          for(auto index : indexes){
+            Index *idx = index->GetIndex();
+            std::vector<Field> fields_;
+            IndexMetadata *meta = index->GetMetadata();
+            std::vector<uint32_t> key_map = meta->GetKeyMapping();
+            for(auto id : key_map){
+              fields_.push_back(*(iter->GetField(id)));
+            }
+            Row delete_row(fields_);
+            RowId tmp;
+            idx->RemoveEntry(delete_row,tmp,nullptr);
+          }
+        }
+        table_heap->MarkDelete(iter->GetRowId(),nullptr);
+     }
+   }else{
+      string table_name = tmp->val_;
+      TableInfo *table_info;
+      std::vector<IndexInfo *> indexes;
+      cata->GetTable(table_name,table_info);
+      Schema *schema = table_info->GetSchema();
+      TableHeap *table_heap = table_info->GetTableHeap();
+      tmp = tmp->next_;
+      tmp = tmp->child_;
+      cata->GetTableIndexes(table_name,indexes);
+      for(auto iter = table_heap->Begin(nullptr);iter != table_heap->End();iter++){
+        if(DFS(tmp,iter,schema)){
+          
+        }
+      }
+
+   }
   return DB_FAILED;
 }
+
 
 dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteUpdate" << std::endl;
 #endif
-  pSyntaxNode tmp = ast->child_;
+  /*pSyntaxNode tmp = ast->child_;
   DBStorageEngine *engine = (dbs_.find(current_db_))->second;
   CatalogManager *cata = engine->catalog_mgr_;
 
@@ -411,7 +543,7 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
     }
 
     tmp = tmp->next_;
-  }
+  }*/
 
   return DB_FAILED;
 }
@@ -420,7 +552,7 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteExecfile" << std::endl;
 #endif
-  string file = ast->child_->val_;
+  // string file = ast->child_->val_;
   return DB_FAILED;
 }
 

@@ -16,13 +16,13 @@ public:
 
   explicit TableIterator(TableHeap *tableheap, RowId rid, Transaction *txn);
 
-  explicit TableIterator(const TableIterator &other);
+  TableIterator(const TableIterator &other);
 
   virtual ~TableIterator();
 
   inline bool operator==(const TableIterator &itr) const;
 
-  inline bool operator!=(const TableIterator &itr) const;
+  bool operator!=(const TableIterator &itr) const;
 
   const Row &operator*();
 

@@ -25,7 +25,7 @@ dberr_t BPLUSTREE_INDEX_TYPE::InsertEntry(const Row &key, RowId row_id, Transact
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-dberr_t BPLUSTREE_INDEX_TYPE::RemoveEntry(const Row &key, RowId row_id, Transaction *txn) {
+dberr_t BPLUSTREE_INDEX_TYPE::RemoveEntry(const Row &key,RowId row_id,Transaction *txn) {
   KeyType index_key;
   index_key.SerializeFromKey(key, key_schema_);
 
