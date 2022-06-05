@@ -1,4 +1,5 @@
 #include "executor/execute_engine.h"
+#include <iomanip>
 #include "glog/logging.h"
 #include "index/b_plus_tree.h"
 #include "index/index.h"
@@ -117,7 +118,8 @@ bool DFS(pSyntaxNode ast, TableIterator iter, Schema *schema) {
       return true;
 
     return false;
-  }else return false;
+  } else
+    return false;
 }
 
 dberr_t ExecuteEngine::ExecuteCreateDatabase(pSyntaxNode ast, ExecuteContext *context) {
@@ -400,6 +402,132 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteSelect" << std::endl;
 #endif
+  pSyntaxNode tmp = ast->child_;
+  DBStorageEngine *engine = (dbs_.find(current_db_))->second;
+  CatalogManager *cata = engine->catalog_mgr_;
+  if (ast->type_ == kNodeAllColumns && ast->next_->next_ == NULL) {
+    ast = ast->next_;
+    string tablename = ast->val_;
+    TableInfo *table_info = NULL;
+    cata->GetTable(tablename, table_info);
+    // column name
+    Schema *schema = table_info->GetSchema();
+    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+      cout << left << setw(15) << schema->GetColumn(i)->GetName();
+    }
+    cout << endl;
+
+    TableHeap *table_heap = table_info->GetTableHeap();
+    for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
+      for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+        cout << left << setw(15) << (*iter).GetField(i)->GetData();
+      }
+      cout << endl;
+    }
+    return DB_SUCCESS;
+  } else if (ast->type_ == kNodeColumnList && ast->next_->next_ == NULL) {
+    string tablename = ast->next_->val_;
+    TableInfo *table_info = NULL;
+    cata->GetTable(tablename, table_info);
+    ast = ast->child_;
+    std::vector<string> column_name;
+    while (ast != NULL) {
+      column_name.push_back(ast->val_);
+      ast = ast->next_;
+    }
+    // column name
+    Schema *schema = table_info->GetSchema();
+    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+      int j = 0;
+      if (schema->GetColumn(i)->GetName() == column_name[j]) {
+        cout << left << setw(15) << schema->GetColumn(i)->GetName();
+        j++;
+      }
+    }
+    cout << endl;
+
+    TableHeap *table_heap = table_info->GetTableHeap();
+    for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
+      for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+        int j = 0;
+        if (schema->GetColumn(i)->GetName() == column_name[j]) {
+          cout << left << setw(15) << (*iter).GetField(i)->GetData();
+          j++;
+        }
+      }
+      cout << endl;
+    }
+    return DB_SUCCESS;
+  } else if (ast->type_ == kNodeAllColumns && ast->next_->next_ != NULL) {
+    //有索引
+
+    //没索引
+    ast = ast->next_;
+    string tablename = ast->val_;
+    TableInfo *table_info = NULL;
+    cata->GetTable(tablename, table_info);
+    // column name
+    Schema *schema = table_info->GetSchema();
+    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+      cout << left << setw(15) << schema->GetColumn(i)->GetName();
+    }
+    cout << endl;
+
+    ast = ast->next_;
+    ast = ast->child_;
+
+    TableHeap *table_heap = table_info->GetTableHeap();
+    for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
+      if (DFS(ast, iter, schema)) {
+        for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+          cout << left << setw(15) << (*iter).GetField(i)->GetData();
+        }
+        cout << endl;
+      }
+    }
+    return DB_SUCCESS;
+  } else if (ast->type_ == kNodeColumnList && ast->next_->next_ != NULL) {
+    //有索引
+
+    //没索引
+    string tablename = ast->next_->val_;
+    pSyntaxNode tmp = ast;
+    TableInfo *table_info = NULL;
+    cata->GetTable(tablename, table_info);
+    ast = ast->child_;
+    std::vector<string> column_name;
+    while (ast != NULL) {
+      column_name.push_back(ast->val_);
+      ast = ast->next_;
+    }
+    // column name
+    Schema *schema = table_info->GetSchema();
+    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+      int j = 0;
+      if (schema->GetColumn(i)->GetName() == column_name[j]) {
+        cout << left << setw(15) << schema->GetColumn(i)->GetName();
+        j++;
+      }
+    }
+    cout << endl;
+    tmp = tmp->next_;
+    tmp = tmp->next_;
+    tmp = tmp->child_;
+    TableHeap *table_heap = table_info->GetTableHeap();
+    for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
+      if (DFS(tmp, iter, schema)) {
+        for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+          int j = 0;
+          if (schema->GetColumn(i)->GetName() == column_name[j]) {
+            cout << left << setw(15) << (*iter).GetField(i)->GetData();
+            j++;
+          }
+        }
+        cout << endl;
+      }
+    }
+    return DB_SUCCESS;
+  }
 
   return DB_FAILED;
 }
