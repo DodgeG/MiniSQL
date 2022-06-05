@@ -6,6 +6,7 @@
 #include "common/dberr.h"
 #include "record/row.h"
 #include "transaction/transaction.h"
+#include "page/b_plus_tree_leaf_page.h"
 
 class Index {
 public:
@@ -21,6 +22,9 @@ public:
   virtual dberr_t ScanKey(const Row &key, std::vector<RowId> &result, Transaction *txn) = 0;
 
   virtual dberr_t Destroy() = 0;
+
+
+
 
 protected:
   index_id_t index_id_;
