@@ -1,6 +1,9 @@
 #include "executor/execute_engine.h"
 #include <iomanip>
 #include "glog/logging.h"
+#include "index/b_plus_tree.h"
+#include "index/index.h"
+#include <typeinfo>
 
 ExecuteEngine::ExecuteEngine() {}
 
@@ -650,6 +653,7 @@ dberr_t ExecuteEngine::ExecuteDelete(pSyntaxNode ast, ExecuteContext *context) {
             Row delete_row(fields);
             RowId tmp;
             idx->RemoveEntry(delete_row, tmp, nullptr);
+          
           }
         }
         table_heap->MarkDelete(iter->GetRowId(), nullptr);
