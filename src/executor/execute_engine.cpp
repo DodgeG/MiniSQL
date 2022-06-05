@@ -399,7 +399,7 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteSelect" << std::endl;
 #endif
-  pSyntaxNode tmp = ast->child_;
+  //pSyntaxNode tmp = ast->child_;
   DBStorageEngine *engine = (dbs_.find(current_db_))->second;
   CatalogManager *cata = engine->catalog_mgr_;
   if (ast->type_ == kNodeAllColumns && ast->next_->next_ == NULL) {
@@ -484,10 +484,13 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     }
     return DB_SUCCESS;
   } else if (ast->type_ == kNodeColumnList && ast->next_->next_ != NULL) {
+     string tablename = ast->next_->val_;
     //有索引
-
+    
+    
+    
     //没索引
-    string tablename = ast->next_->val_;
+   
     pSyntaxNode tmp = ast;
     TableInfo *table_info = NULL;
     cata->GetTable(tablename, table_info);
