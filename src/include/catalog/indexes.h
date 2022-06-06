@@ -95,7 +95,6 @@ public:
 
   inline IndexMetadata *GetMetadata() const{ return meta_data_; }
   
-  inline size_t GetSize() const{return size_;}
 
 private:
   explicit IndexInfo() : meta_data_{nullptr}, index_{nullptr}, table_info_{nullptr},
@@ -103,30 +102,7 @@ private:
 
   Index *CreateIndex(BufferPoolManager *buffer_pool_manager) {
     //ASSERT(false, "Not Implemented yet.");
-    auto key_map = meta_data_->GetKeyMapping();
-    size_ = 0;
-    auto keys = key_schema_->GetColumns();
-    for(auto key : keys){
-      TypeId type = key->GetType();
-      if(type == kTypeInt)
-        size_ = size_ + 4;
-      else if(type == kTypeFloat)
-        size_ = size_ + 4;
-      else if(type == kTypeChar)
-        size_ = size_ + key->GetLength();
-    }
-
-    if(size_ < 4){
-      return new BPlusTreeIndex<GenericKey<4>,RowId,GenericComparator<4>>(meta_data_->GetIndexId(),key_schema_,buffer_pool_manager);
-    }else if(size_ < 8) {
-      return new BPlusTreeIndex<GenericKey<8>,RowId,GenericComparator<8>>(meta_data_->GetIndexId(),key_schema_,buffer_pool_manager);
-    }if(size_ < 16){
-      return new BPlusTreeIndex<GenericKey<16>,RowId,GenericComparator<16>>(meta_data_->GetIndexId(),key_schema_,buffer_pool_manager);
-    }else if(size_ < 32) {
-      return new BPlusTreeIndex<GenericKey<32>,RowId,GenericComparator<32>>(meta_data_->GetIndexId(),key_schema_,buffer_pool_manager);
-    }else{
       return new BPlusTreeIndex<GenericKey<64>,RowId,GenericComparator<64>>(meta_data_->GetIndexId(),key_schema_,buffer_pool_manager);
-    }
   }
 
 private:
@@ -135,7 +111,6 @@ private:
   TableInfo *table_info_;
   IndexSchema *key_schema_;
   MemHeap *heap_;
-  size_t size_;
 };
 
 #endif //MINISQL_INDEXES_H
