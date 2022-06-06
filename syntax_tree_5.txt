@@ -1,0 +1,5 @@
+digraph G{ 
+SYNTAX_NODE_1[label="kNodeExecFile(1,39)\nid(1)"];
+SYNTAX_NODE_0[label="kNodeString(1,39)\nid(0),val(/mnt/e/minisql-1/src/exe.txt)"];
+SYNTAX_NODE_1  ->  SYNTAX_NODE_0;
+}
