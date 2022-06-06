@@ -1,6 +1,7 @@
 #include "common/macros.h"
 #include "record/types.h"
 #include "record/field.h"
+#include <string>
 
 inline int CompareStrings(const char *str1, int len1, const char *str2, int len2) {
   assert(str1 != nullptr);
@@ -39,6 +40,16 @@ uint32_t Type::GetSerializedSize(const Field &field, bool is_null) const {
 }
 
 const char *Type::GetData(const Field &val) const {
+
+  if(val.GetTypeId() == kTypeInt){
+    std::string str = std::to_string(val.value_.integer_);
+    return str.c_str();
+  }else if(val.GetTypeId() == kTypeFloat){
+    std::string str = std::to_string(val.value_.float_);
+    return str.c_str();
+  }else{
+    return val.value_.chars_;
+  }
   return nullptr;
 }
 
