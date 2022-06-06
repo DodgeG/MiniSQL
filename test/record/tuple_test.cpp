@@ -103,6 +103,7 @@ TEST(TupleTest, RowTest) {
   };
   auto schema = std::make_shared<Schema>(columns);
   Row row(fields);
+
   table_page.Init(0, INVALID_PAGE_ID, nullptr, nullptr);
   table_page.InsertTuple(row, schema.get(), nullptr, nullptr, nullptr);
   RowId first_tuple_rid;

@@ -267,6 +267,8 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
       tmp = tmp->next_;
     }
   }
+
+  printf("size:%d",(int)columns.size());
   TableSchema *schema = new TableSchema(columns);
   if (cata->CreateTable(table_name, schema, nullptr, table_info) == DB_SUCCESS) {
     printf("[INFO] Create table successfully!\n");
@@ -435,6 +437,8 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     cout << "444444444" << endl;
 
     TableHeap *table_heap = table_info->GetTableHeap();
+    auto iter1 = table_heap->Begin(nullptr);
+    printf("%d\n%d\n",iter1->GetRowId().GetPageId(),iter1->GetRowId().GetSlotNum());
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
       for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
         cout << left << setw(15) << (*iter).GetField(i)->GetData();        
@@ -591,8 +595,12 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
   //构造row
   cout << "222222222" << endl;
   TableHeap *table_heap = table_info->GetTableHeap();
-  Row row(fields_);
-  table_heap->InsertTuple(row, nullptr);
+  //Row row(fields_);
+  printf("row:%d\n",(int)fields_.size());
+  Row *row = new Row(fields_);
+  table_heap->InsertTuple(*row, nullptr);
+  printf("%d\n",(int)(row->GetRowId().GetSlotNum()));
+  printf("%d\n",(int)(row->GetRowId().GetPageId()));
   std::vector<IndexInfo *> indexes;
   if (cata->GetTableIndexes(table_name, indexes) == DB_SUCCESS) {
     cout << "3333333333" << endl;
@@ -605,7 +613,7 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
         fies.push_back(fields_.at(id));
       }
       Row row_index(fies);
-      if (index_->InsertEntry(row_index, row.GetRowId(), nullptr) == DB_SUCCESS) {
+      if (index_->InsertEntry(row_index, row->GetRowId(), nullptr) == DB_SUCCESS) {
         printf("[INFO] Insert successfully!\n");
         return DB_SUCCESS;
       } else {
@@ -614,6 +622,7 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
       }
     }
   }
+
 
   return DB_SUCCESS;
 }

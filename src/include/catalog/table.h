@@ -53,6 +53,7 @@ public:
   }
 
   ~TableInfo() {
+    
     delete heap_;
   }
 

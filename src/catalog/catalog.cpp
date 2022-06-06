@@ -123,7 +123,12 @@ CatalogManager::CatalogManager(BufferPoolManager *buffer_pool_manager, LockManag
   }
 }
 
-CatalogManager::~CatalogManager() { delete heap_; }
+CatalogManager::~CatalogManager() { 
+  char *buf = reinterpret_cast<char *>(buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID)->GetData());
+  catalog_meta_->SerializeTo(buf);
+  buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID,true);
+  delete heap_; 
+}
 
 dberr_t CatalogManager::CreateTable(const string &table_name, TableSchema *schema, Transaction *txn,
                                     TableInfo *&table_info) {

@@ -62,7 +62,6 @@ public:
   }
 
   ~IndexInfo() {
-    delete heap_;
   }
 
   void Init(IndexMetadata *meta_data, TableInfo *table_info, BufferPoolManager *buffer_pool_manager) {

@@ -39,7 +39,6 @@ uint32_t Type::GetSerializedSize(const Field &field, bool is_null) const {
 }
 
 const char *Type::GetData(const Field &val) const {
-  ASSERT(false, "GetData not implemented.");
   return nullptr;
 }
 
