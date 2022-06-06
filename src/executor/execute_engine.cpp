@@ -86,7 +86,7 @@ bool isFloat(string str) {
   return false;
 }
 
-bool DFS(pSyntaxNode ast, TableIterator iter, Schema *schema) {
+bool DFS(pSyntaxNode ast, TableIterator &iter, Schema *schema) {
   if (ast->type_ == kNodeCompareOperator) {
     pSyntaxNode attr = ast->child_;
     pSyntaxNode val = attr->next_;
@@ -97,25 +97,26 @@ bool DFS(pSyntaxNode ast, TableIterator iter, Schema *schema) {
     schema->GetColumnIndex(col_name, index);
     Field *fie = iter->GetField(index);
     const char *l_value = fie->GetData();
-    auto item = ast->val_;
-    if (item == (char *)"=" && l_value == r_value)
+    char *item = ast->val_;
+    if (strcmp(item,"=")==0 && strcmp(l_value, r_value) == 0)
       return true;
-    else if (item == (char *)">" && strcmp(l_value, r_value) > 0)
+    else if (strcmp(item,">") && strcmp(l_value, r_value) > 0)
       return true;
-    else if (item == (char *)">=" && strcmp(l_value, r_value) >= 0)
+    else if (strcmp(item,">=") && strcmp(l_value, r_value) >= 0)
       return true;
-    else if (item == (char *)"<=" && strcmp(l_value, r_value) <= 0)
+    else if (strcmp(item,"<=") && strcmp(l_value, r_value) <= 0)
       return true;
-    else if (item == (char *)"<" && strcmp(l_value, r_value) < 0)
+    else if (strcmp(item,"<") && strcmp(l_value, r_value) < 0)
       return true;
-    else if (item == (char *)"<>" && strcmp(l_value, r_value) != 0)
+    else if (strcmp(item,"!=") && strcmp(l_value, r_value) != 0)
       return true;
 
     return false;
   } else if (ast->type_ == kNodeConnector) {
-    if (ast->val_ == (char *)"and" && DFS(ast->child_, iter, schema) && DFS(ast->child_->next_, iter, schema))
+    char *connector = ast->val_;
+    if (strcmp(connector,"and") && DFS(ast->child_, iter, schema) && DFS(ast->child_->next_, iter, schema))
       return true;
-    else if (ast->val_ == (char *)"or" && (DFS(ast->child_, iter, schema) || DFS(ast->child_->next_, iter, schema)))
+    else if (strcmp(connector,"or") && (DFS(ast->child_, iter, schema) || DFS(ast->child_->next_, iter, schema)))
       return true;
 
     return false;
@@ -500,7 +501,7 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
 
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
-      if (DFS(ast, iter, schema)) {
+      if (DFS(ast,iter,schema)) {
         for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
           cout << left << setw(15) << (*iter).GetField(i)->GetData();
         }
