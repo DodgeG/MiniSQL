@@ -947,9 +947,8 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
 
   TableHeap *table_heap = table_info->GetTableHeap();
 
-  pSyntaxNode tmp = ast->child_;
+  tmp = ast->child_;
   table_name = tmp->val_;
-  std::vector<Field *> fields_;
   Schema *schema = table_info->GetSchema();
   bool res = true;
 
@@ -960,14 +959,7 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
       std::vector<Field> fields_;
       std::vector<string> column_;
 
-      while (tmp != NULL) {
-        Field *fie = NULL;
-        pSyntaxNode tmp_ = tmp->child_;
-
-        column_.emplace_back(tmp_->val_);
-        tmp_ = tmp_->next_;
-        if (tmp_->type_ == kNodeNumber) {
-          if (isFloat(tmp_->val_)) {
+      
 
   std::map<string, Field*> map_;
   Schema * schema = table_info->GetSchema();
@@ -1099,8 +1091,10 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
     return DB_FAILED;
   }
 }
+        }
+      }
 
-dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context) {
+dberr_t ExecuteEngine::ExecuteExecfile (pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteExecfile" << std::endl;
 #endif
