@@ -247,6 +247,8 @@ dberr_t CatalogManager::CreateIndex(const std::string &table_name, const string 
     uint32_t key_id;
     if(schema->GetColumnIndex(key,key_id) == DB_COLUMN_NAME_NOT_EXIST)
       return DB_COLUMN_NAME_NOT_EXIST;
+    const Column *col = schema->GetColumn(key_id);
+    if(!col->IsUnique()) return DB_FAILED;
     key_map.push_back(key_id);
   }
 

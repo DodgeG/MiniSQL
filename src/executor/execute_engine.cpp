@@ -895,12 +895,8 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
   //构造row
 
   TableHeap *table_heap = table_info->GetTableHeap();
-  // Row row(fields_);
-  // printf("row:%d\n",(int)fields_.size());
   Row *row = new Row(fields_);
   table_heap->InsertTuple(*row, nullptr);
-  // printf("%d\n",(int)(row->GetRowId().GetSlotNum()));
-  // printf("%d\n",(int)(row->GetRowId().GetPageId()));
   std::vector<IndexInfo *> indexes;
   if (cata->GetTableIndexes(table_name, indexes) == DB_SUCCESS) {
     for (auto index_info : indexes) {
@@ -921,7 +917,6 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
       }
     }
   }
-
   return DB_SUCCESS;
 }
 
@@ -1161,7 +1156,6 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
 
   while (1) {
     stream.getline(cmd, 1025);
-
     // read from buffer
     //cout << cmd << endl;
 
