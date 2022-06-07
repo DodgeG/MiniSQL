@@ -1,0 +1,5 @@
+digraph G{ 
+SYNTAX_NODE_1[label="kNodeCreateDB(1,20)\nid(1)"];
+SYNTAX_NODE_0[label="kNodeIdentifier(1,20)\nid(0),val(db11)"];
+SYNTAX_NODE_1  ->  SYNTAX_NODE_0;
+}
