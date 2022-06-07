@@ -1,5 +1,7 @@
 #include "executor/execute_engine.h"
+#include <algorithm>
 #include <iomanip>
+#include <typeinfo>
 #include "glog/logging.h"
 #include "index/b_plus_tree.h"
 #include "index/index.h"
@@ -128,25 +130,25 @@ bool DFS(pSyntaxNode ast, TableIterator &iter, Schema *schema) {
     
     const char *l_value = fie->GetData();
     char *item = ast->val_;
-    if (strcmp(item,"=")==0 && strcmp(l_value, r_value) == 0)
+    if (strcmp(item, "=") == 0 && strcmp(l_value, r_value) == 0)
       return true;
-    else if (strcmp(item,">")==0 && strcmp(l_value, r_value) > 0)
+    else if (strcmp(item, ">") == 0 && strcmp(l_value, r_value) > 0)
       return true;
-    else if (strcmp(item,">=")==0 && strcmp(l_value, r_value) >= 0)
+    else if (strcmp(item, ">=") == 0 && strcmp(l_value, r_value) >= 0)
       return true;
-    else if (strcmp(item,"<=")==0 && strcmp(l_value, r_value) <= 0)
+    else if (strcmp(item, "<=") == 0 && strcmp(l_value, r_value) <= 0)
       return true;
-    else if (strcmp(item,"<")==0 && strcmp(l_value, r_value) < 0)
+    else if (strcmp(item, "<") == 0 && strcmp(l_value, r_value) < 0)
       return true;
-    else if (strcmp(item,"!=")==0 && strcmp(l_value, r_value) != 0)
+    else if (strcmp(item, "!=") == 0 && strcmp(l_value, r_value) != 0)
       return true;
 
     return false;
   } else if (ast->type_ == kNodeConnector) {
     char *connector = ast->val_;
-    if (strcmp(connector,"and") && DFS(ast->child_, iter, schema) && DFS(ast->child_->next_, iter, schema))
+    if (strcmp(connector, "and") && DFS(ast->child_, iter, schema) && DFS(ast->child_->next_, iter, schema))
       return true;
-    else if (strcmp(connector,"or") && (DFS(ast->child_, iter, schema) || DFS(ast->child_->next_, iter, schema)))
+    else if (strcmp(connector, "or") && (DFS(ast->child_, iter, schema) || DFS(ast->child_->next_, iter, schema)))
       return true;
 
     return false;
@@ -402,6 +404,7 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
       }
       Row entry(field);
       index_->InsertEntry(entry, iter->GetRowId(), nullptr);
+      ++iter;
     }
 
     printf("[INFO] Create index successfully!\n");
@@ -436,157 +439,341 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteSelect" << std::endl;
 #endif
-  
-  DBStorageEngine *engine = (dbs_.find(current_db_))->second;
 
+  DBStorageEngine *engine = (dbs_.find(current_db_))->second;
   CatalogManager *cata = engine->catalog_mgr_;
-  
-  ast=ast->child_;
-  if (ast->type_ == kNodeAllColumns && ast->next_->next_ == NULL) {
+
+  ast = ast->child_;
+  string tablename = ast->next_->val_;
+  TableInfo *table_info = NULL;
+  cata->GetTable(tablename, table_info);
+  Schema *schema = table_info->GetSchema();
+
+  int size_table = 20 * schema->GetColumnCount() + schema->GetColumnCount() + 1;
+  cout << left << setfill('-') << setw(size_table) << '-';
+  cout << endl;
+  for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+    cout << "|";
+    cout << left << setfill(' ') << setw(20) << schema->GetColumn(i)->GetName();
+  }
+  cout << "|" << endl;
+  cout << left << setfill('-') << setw(size_table) << '-';
+  cout << endl;
+
+  if (ast->type_ == kNodeAllColumns && ast->next_->next_ == NULL) {  //无投影且无条件
 
     ast = ast->next_;
-    string tablename = ast->val_;
-    TableInfo *table_info = NULL;
-    cata->GetTable(tablename, table_info);
-    // column name
-    Schema *schema = table_info->GetSchema();
-
-    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-      cout << left << setw(15) << schema->GetColumn(i)->GetName();
-      
-    }
-    cout << endl;
 
     TableHeap *table_heap = table_info->GetTableHeap();
-    auto iter1 = table_heap->Begin(nullptr);
-    //printf("%d\n%d\n",iter1->GetRowId().GetPageId(),iter1->GetRowId().GetSlotNum());
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
       for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-        cout << left << setw(15) << (*iter).GetField(i)->GetData();        
+        cout << "|";
+        cout << left << setfill(' ') << setw(20) << (*iter).GetField(i)->GetData();
       }
-      
+      cout << "|" << endl;
       cout << endl;
     }
+    cout << left << setfill('-') << setw(size_table) << '-';
+    cout << endl;
     return DB_SUCCESS;
-  } else if (ast->type_ == kNodeColumnList && ast->next_->next_ == NULL) {
-    string tablename = ast->next_->val_;
-    TableInfo *table_info = NULL;
-    cata->GetTable(tablename, table_info);
+  } else if (ast->type_ == kNodeColumnList && ast->next_->next_ == NULL) {  //有投影但无条件
+
     ast = ast->child_;
+
     std::vector<string> column_name;
     while (ast != NULL) {
       column_name.push_back(ast->val_);
       cout << ast->val_ << endl;
       ast = ast->next_;
     }
-    // column name
-    Schema *schema = table_info->GetSchema();
-    int j = 0;
-    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-      
-      if (schema->GetColumn(i)->GetName() == column_name[j]) {
-        cout << left << setw(15) << schema->GetColumn(i)->GetName();
-        j++;
-      }
-    }
-    cout << endl;
 
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
-      int j = 0;
+      cout << left << setfill('-') << setw(size_table) << endl;
       for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-        
+        int j = 0;
+        cout << "|";
         if (schema->GetColumn(i)->GetName() == column_name[j]) {
-          cout << left << setw(15) << (*iter).GetField(i)->GetData();
+          cout << left << setw(20) << (*iter).GetField(i)->GetData();
           j++;
         }
       }
-      cout << endl;
+      cout << "|" << endl;
+      cout << left << setfill('-') << setw(size_table) << endl;
     }
     return DB_SUCCESS;
-  } else if (ast->type_ == kNodeAllColumns && ast->next_->next_ != NULL) {
+  } else if (ast->type_ == kNodeAllColumns && ast->next_->next_ != NULL) {  //无投影但有条件
     //有索引
-    ast = ast->next_;
-    string tablename = ast->val_;
-    TableInfo *table_info = NULL;
-    cata->GetTable(tablename, table_info);
-    // column name
-    Schema *schema = table_info->GetSchema();
+    pSyntaxNode tmp = ast->next_->next_->child_;
+    if (tmp->type_ == kNodeCompareOperator) {
+      string attr_name = ast->next_->next_->child_->child_->val_;
+      vector<IndexInfo *> indexes;
+      auto compare = tmp->val_;
+      auto val = tmp->child_->next_->val_;
+      cata->GetTableIndexes(tablename, indexes);
+      for (auto index : indexes) {
+        Schema *schema = index->GetIndexKeySchema();
+        vector<Column *> cols;
+        cols = schema->GetColumns();
+        if (cols.size() == 1 && cols.at(0)->GetName() == attr_name) {
+          uint32_t id = cols.at(0)->GetTableInd();
+          TypeId type = cols.at(0)->GetType();
+          auto idx = dynamic_cast<BPlusTreeIndex<GenericKey<64>, RowId, GenericComparator<64>> *>(index->GetIndex());
+          vector<Field *> tmp_fie;
+          if (type == kTypeInt) {
+            auto fie = new Field(kTypeInt, (int32_t)StringToInt(val));
+            tmp_fie.push_back(fie);
+          } else if (type == kTypeFloat) {
+            auto fie = new Field(kTypeFloat, StringToFloat(val));
+            tmp_fie.push_back(fie);
+          } else {
+            auto fie = new Field(kTypeChar, val, strlen(val), false);
+            tmp_fie.push_back(fie);
+          }
+          vector<Field> fields;
+          for (auto fie : tmp_fie) fields.push_back(*fie);
 
-    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-      cout << left << setw(15) << schema->GetColumn(i)->GetName();
-      
+          Row key(fields);
+          GenericKey<64> Key;
+          Key.SerializeFromKey(key, schema);
+          if (strcmp(compare, "=") == 0) {
+            auto iter = idx->GetBeginIterator(Key);
+            Row row((*iter).second);
+            TableHeap *table_heap = table_info->GetTableHeap();
+            table_heap->GetTuple(&row, nullptr);
+            vector<Field *> field_;
+            field_ = row.GetFields();
+            for (auto field : field_) {
+              cout << left << setw(20) << field->GetData();
+            }
+            cout << endl;
+          } else if (strcmp(compare, "<") == 0) {
+            auto iter = idx->GetBeginIterator();
+            for (; iter != idx->GetEndIterator(); ++iter) {
+              Row row((*iter).second);
+              TableHeap *table_heap = table_info->GetTableHeap();
+              table_heap->GetTuple(&row, nullptr);
+              vector<Field *> field_;
+              field_ = row.GetFields();
+              if (strcmp(field_[id]->GetData(), val) < 0) {
+                for (auto field : field_) {
+                  cout << left << setw(20) << field->GetData();
+                }
+                cout << endl;
+              } else
+                break;
+            }
+          } else if (strcmp(compare, "<=") == 0) {
+            auto iter = idx->GetBeginIterator();
+            for (; iter != idx->GetEndIterator(); ++iter) {
+              Row row((*iter).second);
+              TableHeap *table_heap = table_info->GetTableHeap();
+              table_heap->GetTuple(&row, nullptr);
+              vector<Field *> field_;
+              field_ = row.GetFields();
+              if (strcmp(field_[id]->GetData(), val) <= 0) {
+                for (auto field : field_) {
+                  cout << left << setw(20) << field->GetData();
+                }
+                cout << endl;
+              } else
+                break;
+            }
+          } else if (strcmp(compare, "<>") == 0) {
+            auto tmp = idx->GetBeginIterator(Key);
+            if (tmp.GetFlag() == 1) {
+              for (auto iter = idx->GetBeginIterator(); iter != idx->GetEndIterator(); ++iter) {
+                if (iter == tmp) ++iter;
+                Row row((*iter).second);
+                TableHeap *table_heap = table_info->GetTableHeap();
+                table_heap->GetTuple(&row, nullptr);
+                vector<Field *> field_;
+                field_ = row.GetFields();
+                for (auto field : field_) {
+                  cout << left << setw(20) << field->GetData();
+                  cout << endl;
+                }
+              }
+            } else {
+              for (auto iter = idx->GetBeginIterator(); iter != idx->GetEndIterator(); ++iter) {
+                Row row((*iter).second);
+                TableHeap *table_heap = table_info->GetTableHeap();
+                table_heap->GetTuple(&row, nullptr);
+                vector<Field *> field_;
+                field_ = row.GetFields();
+                for (auto field : field_) {
+                  cout << left << setw(20) << field->GetData();
+                  cout << endl;
+                }
+              }
+            }
+          } else {
+            auto iter = idx->GetBeginIterator(Key);
+            if (iter.GetFlag() == 1 && strcmp(compare, ">") == 0) ++iter;
+            while (iter != idx->GetEndIterator()) {
+              Row row((*iter).second);
+              TableHeap *table_heap = table_info->GetTableHeap();
+              table_heap->GetTuple(&row, nullptr);
+              vector<Field *> field_;
+              field_ = row.GetFields();
+              for (auto field : field_) {
+                cout << left << setw(20) << field->GetData();
+                cout << endl;
+              }
+              ++iter;
+            }
+          }
+          return DB_SUCCESS;
+        }
+      }
     }
-    cout << endl;
+
+    //没索引
+    ast = ast->next_;
+    ast = ast->next_;
+    ast = ast->child_;
 
     TableHeap *table_heap = table_info->GetTableHeap();
     auto iter1 = table_heap->Begin(nullptr);
     //printf("%d\n%d\n",iter1->GetRowId().GetPageId(),iter1->GetRowId().GetSlotNum());
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
-      if (DFS(ast,iter,schema)) {
+      if (DFS(ast, iter, schema)) {
         for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-        cout << left << setw(15) << (*iter).GetField(i)->GetData();        
-      }
-      
-      cout << endl;
+          cout << left << setw(20) << (*iter).GetField(i)->GetData();
+        }
+        cout << endl;
       }
       
     }
     return DB_SUCCESS;
-    //没索引
-    // ast = ast->next_;
-    // string tablename = ast->val_;
-    // TableInfo *table_info = NULL;
-    // cata->GetTable(tablename, table_info);
-    // // column name
-    // Schema *schema = table_info->GetSchema();
-    // for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-    //   cout << left << setw(15) << schema->GetColumn(i)->GetName();
-    // }
-    // cout << endl;
-
-    // ast = ast->next_;
-    // ast = ast->child_;
-
-    // TableHeap *table_heap = table_info->GetTableHeap();
-    // for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
-    //   if (DFS(ast->child_, iter, schema )|| true) {
-    //     for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-    //       cout << left << setw(15) << (*iter).GetField(i)->GetData();
-    //     }
-    //     cout << endl;
-    //   }
-    // }
-    // return DB_SUCCESS;
-  } else if (ast->type_ == kNodeColumnList && ast->next_->next_ != NULL) {
-     string tablename = ast->next_->val_;
+  } else if (ast->type_ == kNodeColumnList && ast->next_->next_ != NULL) {  //有投影且有条件
     //有索引
-    
-    //没索引
-   
-    pSyntaxNode tmp = ast;
-    TableInfo *table_info = NULL;
-    cata->GetTable(tablename, table_info);
-    ast = ast->child_;
+
+    pSyntaxNode list = ast->child_;
     std::vector<string> column_name;
-    while (ast != NULL) {
-      column_name.push_back(ast->val_);
-      ast = ast->next_;
+    vector<uint32_t> ind;
+    while (list != NULL) {
+      uint32_t id_;
+      column_name.push_back(list->val_);
+      schema->GetColumnIndex(list->val_, id_);
+      ind.push_back(id_);
+      list = list->next_;
     }
-    // column name
-    Schema *schema = table_info->GetSchema();
-    int j = 0;
-    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-      
-      if (schema->GetColumn(i)->GetName() == column_name[j]) {
-        cout << left << setw(15) << schema->GetColumn(i)->GetName();
-        j++;
+    pSyntaxNode tmp = ast->next_->next_->child_;
+    if (tmp->type_ == kNodeCompareOperator) {
+      string attr_name = ast->next_->next_->child_->child_->val_;
+      vector<IndexInfo *> indexes;
+      auto compare = tmp->val_;
+      auto val = tmp->child_->next_->val_;
+      cata->GetTableIndexes(tablename, indexes);
+
+      for (auto index : indexes) {
+        Schema *sch = index->GetIndexKeySchema();
+        vector<Column *> cols;
+        cols = sch->GetColumns();
+        if (cols.size() == 1 && cols.at(0)->GetName() == attr_name) {
+          uint32_t id = cols.at(0)->GetTableInd();
+          TypeId type = cols.at(0)->GetType();
+          auto idx = dynamic_cast<BPlusTreeIndex<GenericKey<64>, RowId, GenericComparator<64>> *>(index->GetIndex());
+          vector<Field *> tmp_fie;
+          if (type == kTypeInt) {
+            auto fie = new Field(kTypeInt, (int32_t)StringToInt(val));
+            tmp_fie.push_back(fie);
+          } else if (type == kTypeFloat) {
+            auto fie = new Field(kTypeFloat, StringToFloat(val));
+            tmp_fie.push_back(fie);
+          } else {
+            auto fie = new Field(kTypeChar, val, strlen(val), false);
+            tmp_fie.push_back(fie);
+          }
+          vector<Field> fields;
+          for (auto fie : tmp_fie) fields.push_back(*fie);
+
+          Row key(fields);
+          GenericKey<64> Key;
+          Key.SerializeFromKey(key, sch);
+          if (strcmp(compare, "=") == 0) {
+            auto iter = idx->GetBeginIterator(Key);
+            Row row((*iter).second);
+            TableHeap *table_heap = table_info->GetTableHeap();
+            table_heap->GetTuple(&row, nullptr);
+            for (auto id_ : ind) {
+              cout << left << setw(20) << row.GetField(id_)->GetData();
+            }
+            cout << endl;
+          } else if (strcmp(compare, "<") == 0) {
+            auto iter = idx->GetBeginIterator();
+            for (; iter != idx->GetEndIterator(); ++iter) {
+              Row row((*iter).second);
+              TableHeap *table_heap = table_info->GetTableHeap();
+              table_heap->GetTuple(&row, nullptr);
+              vector<Field *> field_;
+              field_ = row.GetFields();
+              if (strcmp(field_[id]->GetData(), val) < 0) {
+                for (auto id_ : ind) {
+                  cout << left << setw(20) << row.GetField(id_)->GetData();
+                }
+                cout << endl;
+              } else break;
+            }
+          } else if (strcmp(compare, "<=") == 0) {
+            auto iter = idx->GetBeginIterator();
+            for (; iter != idx->GetEndIterator(); ++iter) {
+              Row row((*iter).second);
+              TableHeap *table_heap = table_info->GetTableHeap();
+              table_heap->GetTuple(&row, nullptr);
+              vector<Field *> field_;
+              field_ = row.GetFields();
+              if (strcmp(field_[id]->GetData(), val) <= 0) {
+                for (auto id_ : ind) {
+                  cout << left << setw(20) << row.GetField(id_)->GetData();
+                }
+                cout << endl;
+              } else break;
+            }
+          } else if (strcmp(compare, "<>") == 0) {
+            auto tmp = idx->GetBeginIterator(Key);
+            if (tmp.GetFlag() == 1) {
+              for (auto iter = idx->GetBeginIterator(); iter != idx->GetEndIterator(); ++iter) {
+                if (iter == tmp) ++iter;
+                Row row((*iter).second);
+                TableHeap *table_heap = table_info->GetTableHeap();
+                table_heap->GetTuple(&row, nullptr);
+                vector<Field *> field_;
+                field_ = row.GetFields();
+                for (auto id_ : ind) {
+                  cout << left << setw(20) << row.GetField(id_)->GetData();
+                }
+                cout << endl;
+              }
+            } 
+          }else {
+            auto iter = idx->GetBeginIterator(Key);
+            if (iter.GetFlag() == 1 && strcmp(compare, ">") == 0) ++iter;
+            while (iter != idx->GetEndIterator()) {
+              Row row((*iter).second);
+              TableHeap *table_heap = table_info->GetTableHeap();
+              table_heap->GetTuple(&row, nullptr);
+              vector<Field *> field_;
+              field_ = row.GetFields();
+              for (auto id_ : ind) {
+                cout << left << setw(20) << row.GetField(id_)->GetData();
+              }
+              cout << endl;
+              ++iter;
+            }
+          }
+          return DB_SUCCESS;
+        }
       }
     }
-    cout << endl;
-    tmp = tmp->next_;
-    tmp = tmp->next_;
-    tmp = tmp->child_;
+
+    //没索引
+
+    // column name
+    tmp = ast->next_;  // tablename
+    tmp = tmp->next_;              // conditions
+    tmp = tmp->child_;             // Operator or connector
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
       if (DFS(tmp->child_, iter, schema)) {
@@ -594,7 +781,7 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
         for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
           
           if (schema->GetColumn(i)->GetName() == column_name[j]) {
-            cout << left << setw(15) << (*iter).GetField(i)->GetData();
+            cout << left << setw(20) << (*iter).GetField(i)->GetData();
             j++;
           }
         }
@@ -645,12 +832,12 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
   //构造row
   
   TableHeap *table_heap = table_info->GetTableHeap();
-  //Row row(fields_);
-  //printf("row:%d\n",(int)fields_.size());
+  // Row row(fields_);
+  printf("row:%d\n", (int)fields_.size());
   Row *row = new Row(fields_);
   table_heap->InsertTuple(*row, nullptr);
-  //printf("%d\n",(int)(row->GetRowId().GetSlotNum()));
-  //printf("%d\n",(int)(row->GetRowId().GetPageId()));
+  printf("%d\n", (int)(row->GetRowId().GetSlotNum()));
+  printf("%d\n", (int)(row->GetRowId().GetPageId()));
   std::vector<IndexInfo *> indexes;
   if (cata->GetTableIndexes(table_name, indexes) == DB_SUCCESS) {
     
@@ -672,7 +859,6 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
       }
     }
   }
-
 
   return DB_SUCCESS;
 }
@@ -733,7 +919,6 @@ dberr_t ExecuteEngine::ExecuteDelete(pSyntaxNode ast, ExecuteContext *context) {
             Row delete_row(fields);
             RowId tmp;
             idx->RemoveEntry(delete_row, tmp, nullptr);
-          
           }
         }
         table_heap->MarkDelete(iter->GetRowId(), nullptr);
@@ -747,10 +932,9 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteUpdate" << std::endl;
 #endif
-  
+
   DBStorageEngine *engine = (dbs_.find(current_db_))->second;
   CatalogManager *cata = engine->catalog_mgr_;
-  
   string table_name;
   pSyntaxNode tmp = ast->child_;
   pSyntaxNode tmp2 = ast->child_->next_->next_;
@@ -762,6 +946,28 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
   cata->GetTableIndexes(table_name, indexes);
 
   TableHeap *table_heap = table_info->GetTableHeap();
+
+  pSyntaxNode tmp = ast->child_;
+  table_name = tmp->val_;
+  std::vector<Field *> fields_;
+  Schema *schema = table_info->GetSchema();
+  bool res = true;
+
+  tmp = tmp->next_;          // update Values
+  if (tmp->next_ == NULL) {  // no conditions
+    tmp = tmp->child_;
+    for (auto iter = table_heap->Begin(NULL); iter != table_heap->End(); iter++) {
+      std::vector<Field> fields_;
+      std::vector<string> column_;
+
+      while (tmp != NULL) {
+        Field *fie = NULL;
+        pSyntaxNode tmp_ = tmp->child_;
+
+        column_.emplace_back(tmp_->val_);
+        tmp_ = tmp_->next_;
+        if (tmp_->type_ == kNodeNumber) {
+          if (isFloat(tmp_->val_)) {
 
   std::map<string, Field*> map_;
   Schema * schema = table_info->GetSchema();
@@ -776,16 +982,14 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
         
         if (tmp_->type_ == kNodeNumber){
           if (isFloat(tmp_->val_)){
+
             fie = new Field(kTypeFloat, StringToFloat(tmp_->val_));
-          }
-          else {
+          } else {
             fie = new Field(kTypeInt, (int32_t)StringToInt(tmp_->val_));
           }
-        }
-        else if(tmp_->type_ == kNodeString){
-          fie = new Field (kTypeChar, tmp_->val_, strlen(tmp_->val_), false);
-        }
-        else if (tmp_->type_ == kNodeNull){
+        } else if (tmp_->type_ == kNodeString) {
+          fie = new Field(kTypeChar, tmp_->val_, strlen(tmp_->val_), false);
+        } else if (tmp_->type_ == kNodeNull) {
           fie = new Field(kTypeInvalid);
         }
         map_.insert(map<string, Field*>:: value_type(tmp->child_->val_, fie));
@@ -882,22 +1086,18 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
         }
       }
       Row row(fields_);
-
-      res*=table_heap->UpdateTuple(row, iter->GetRowId(), NULL);
-      }
-      
+      res *= table_heap->UpdateTuple(row, iter->GetRowId(), NULL);
+    }
   }
-
-  if (res){
+  if (res) {
     cout << "[INFO] Update successfully!" << endl;
     return DB_SUCCESS;
   }
-    
-  else{
+
+  else {
     cout << "[INFO] Update failed" << endl;
     return DB_FAILED;
   }
-   
 }
 
 dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context) {

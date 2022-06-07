@@ -1,8 +1,22 @@
 digraph G{ 
+<<<<<<< HEAD
+SYNTAX_NODE_3[label="kNodeCreateIndex(1,34)\nid(3)"];
+SYNTAX_NODE_0[label="kNodeIdentifier(1,16)\nid(0),val(idx)"];
+SYNTAX_NODE_1[label="kNodeIdentifier(1,27)\nid(1),val(account)"];
+SYNTAX_NODE_4[label="kNodeColumnList(1,34)\nid(4),val(index keys)"];
+SYNTAX_NODE_2[label="kNodeIdentifier(1,32)\nid(2),val(year)"];
+SYNTAX_NODE_4  ->  SYNTAX_NODE_2;
+SYNTAX_NODE_1  ->  SYNTAX_NODE_4;
+{rank=same; SYNTAX_NODE_1,SYNTAX_NODE_4};
+SYNTAX_NODE_0  ->  SYNTAX_NODE_1;
+{rank=same; SYNTAX_NODE_0,SYNTAX_NODE_1};
+SYNTAX_NODE_3  ->  SYNTAX_NODE_0;
+=======
 SYNTAX_NODE_2[label="kNodeSelect(1,17)\nid(2)"];
 SYNTAX_NODE_0[label="kNodeAllColumns(1,8)\nid(0)"];
 SYNTAX_NODE_1[label="kNodeIdentifier(1,16)\nid(1),val(t1)"];
 SYNTAX_NODE_0  ->  SYNTAX_NODE_1;
 {rank=same; SYNTAX_NODE_0,SYNTAX_NODE_1};
 SYNTAX_NODE_2  ->  SYNTAX_NODE_0;
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
 }

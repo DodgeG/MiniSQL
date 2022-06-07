@@ -9,7 +9,7 @@ INDEX_TEMPLATE_ARGUMENTS
 class IndexIterator {
 public:
   // you may define your own constructor based on your member variables
-  explicit IndexIterator(BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *leaf,int index,BufferPoolManager *buff_pool_manager);
+  explicit IndexIterator(BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *leaf,int index,BufferPoolManager *buff_pool_manager,int flag);
 
   ~IndexIterator();
 
@@ -25,11 +25,14 @@ public:
   /** Return whether two iterators are not equal. */
   bool operator!=(const IndexIterator &itr) const;
 
+  int GetFlag(){return flag;}
+
 
 private:
   // add your own private member variables here
   BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *leaf_;
   int index_;
+  int flag;
   BufferPoolManager *buff_pool_manager_;
 };
 

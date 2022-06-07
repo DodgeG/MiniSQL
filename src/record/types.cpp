@@ -46,6 +46,7 @@ const char *Type::GetData(const Field &val) const {
     return str.c_str();
   }else if(val.GetTypeId() == kTypeFloat){
     std::string str = std::to_string(val.value_.float_);
+    str.pop_back();
     return str.c_str();
   }else{
     return val.value_.chars_;

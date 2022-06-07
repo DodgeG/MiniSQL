@@ -1,10 +1,20 @@
 digraph G{ 
+<<<<<<< HEAD
 SYNTAX_NODE_4[label="kNodeInsert(1,38)\nid(4)"];
 SYNTAX_NODE_0[label="kNodeIdentifier(1,14)\nid(0),val(t1)"];
 SYNTAX_NODE_5[label="kNodeColumnValues(1,38)\nid(5)"];
 SYNTAX_NODE_1[label="kNodeNumber(1,23)\nid(1),val(1)"];
 SYNTAX_NODE_2[label="kNodeString(1,30)\nid(2),val(aaa)"];
 SYNTAX_NODE_3[label="kNodeNumber(1,37)\nid(3),val(2.33)"];
+=======
+<<<<<<< HEAD
+SYNTAX_NODE_4[label="kNodeInsert(1,47)\nid(4)"];
+SYNTAX_NODE_0[label="kNodeIdentifier(1,19)\nid(0),val(account)"];
+SYNTAX_NODE_5[label="kNodeColumnValues(1,47)\nid(5)"];
+SYNTAX_NODE_1[label="kNodeNumber(1,31)\nid(1),val(17.2)"];
+SYNTAX_NODE_2[label="kNodeString(1,43)\nid(2),val(names1701)"];
+SYNTAX_NODE_3[label="kNodeNumber(1,46)\nid(3),val(17)"];
+>>>>>>> 493cfd580edcb2c5de21394fcd565e5c375c9105
 SYNTAX_NODE_2  ->  SYNTAX_NODE_3;
 {rank=same; SYNTAX_NODE_2,SYNTAX_NODE_3};
 SYNTAX_NODE_1  ->  SYNTAX_NODE_2;
@@ -13,4 +23,12 @@ SYNTAX_NODE_5  ->  SYNTAX_NODE_1;
 SYNTAX_NODE_0  ->  SYNTAX_NODE_5;
 {rank=same; SYNTAX_NODE_0,SYNTAX_NODE_5};
 SYNTAX_NODE_4  ->  SYNTAX_NODE_0;
+<<<<<<< HEAD
+=======
+=======
+SYNTAX_NODE_1[label="kNodeExecFile(1,39)\nid(1)"];
+SYNTAX_NODE_0[label="kNodeString(1,39)\nid(0),val(/mnt/e/minisql-1/src/exe.txt)"];
+SYNTAX_NODE_1  ->  SYNTAX_NODE_0;
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
+>>>>>>> 493cfd580edcb2c5de21394fcd565e5c375c9105
 }

@@ -551,7 +551,7 @@ INDEXITERATOR_TYPE BPLUSTREE_TYPE::Begin() {
   KeyType tmp;
   auto *leaf_page = FindLeafPage(tmp, true);
   auto leaf = reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *>(leaf_page->GetData());
-  return IndexIterator<KeyType, ValueType, KeyComparator>(leaf, 0, buffer_pool_manager_);
+  return IndexIterator<KeyType, ValueType, KeyComparator>(leaf, 0, buffer_pool_manager_,0);
 }
 
 /*
@@ -561,10 +561,17 @@ INDEXITERATOR_TYPE BPLUSTREE_TYPE::Begin() {
  */
 INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE BPLUSTREE_TYPE::Begin(const KeyType &key) {
+  int flag;
   auto *leaf_page = FindLeafPage(key, false);
   auto leaf = reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *>(leaf_page->GetData());
   int index = leaf->KeyIndex(key, comparator_);
-  return IndexIterator<KeyType, ValueType, KeyComparator>(leaf, index, buffer_pool_manager_);
+  if(comparator_(leaf->KeyAt(index),key) == 0) flag = 1;
+  else flag = 0;
+  if(index == leaf->GetSize()){
+    return ++IndexIterator<KeyType, ValueType, KeyComparator>(leaf, index, buffer_pool_manager_,flag);
+  }else{
+    return IndexIterator<KeyType,ValueType,KeyComparator>(leaf,index,buffer_pool_manager_,flag);
+  }
 }
 
 /*
@@ -585,7 +592,7 @@ INDEXITERATOR_TYPE BPLUSTREE_TYPE::End() {
   }
 
   auto node = reinterpret_cast<LeafPage *>(page);
-  return IndexIterator<KeyType, ValueType, KeyComparator>(node, node->GetSize() - 1, buffer_pool_manager_);
+  return IndexIterator<KeyType, ValueType, KeyComparator>(node, node->GetSize(), buffer_pool_manager_,0);
 }
 
 /*****************************************************************************
