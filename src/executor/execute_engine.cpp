@@ -758,10 +758,11 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
   TableInfo *table_info;
   cata->GetTable(table_name, table_info);
 
+  std::vector<IndexInfo *> indexes;
+  cata->GetTableIndexes(table_name, indexes);
+
   TableHeap *table_heap = table_info->GetTableHeap();
 
-
-  
   std::map<string, Field*> map_;
   Schema * schema = table_info->GetSchema();
   bool res = true;
@@ -794,6 +795,27 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
   if (tmp2 == NULL){// no conditionsiter++
   
     for (auto iter = table_heap->Begin(NULL); iter!=table_heap->End(); ++iter){
+      for (auto index : indexes){
+          Index* idx = index->GetIndex();
+          std::vector<Field> fields_1;
+          std::vector<Field> fields_2;
+          IndexMetadata * meta = index->GetMetadata();
+          std::vector<uint32_t> key_map = meta->GetKeyMapping();
+          for (auto id: key_map){
+            fields_1.push_back(*(iter->GetField(id)));
+            if(map_.count(schema->GetColumn(id)->GetName())){
+              fields_2.push_back(*map_[schema->GetColumn(id)->GetName()]);
+            }
+            else {
+              fields_2.push_back(*(iter->GetField(id)));
+            }
+          }
+          Row delete_row(fields_1);
+          Row insert_row(fields_2);
+          RowId tmp;
+          idx->RemoveEntry(delete_row, tmp, NULL);
+          idx->InsertEntry(insert_row, tmp, NULL);
+      }
     
       std::vector<Field> fields_;
   
@@ -803,12 +825,9 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
           fields_.push_back(*map_[schema->GetColumn(i)->GetName()]);
         }
         else {
-          // cout << "f:   " << (*iter).GetField(i)->GetData() << endl;
           fields_.push_back(*((*iter).GetField(i)));
         }
-        // cout << "field: " << (fields_.end()-1)->GetData() << endl;
       }
-   
       Row row(fields_);
 
       res*=table_heap->UpdateTuple(row, iter->GetRowId(), NULL);
@@ -830,6 +849,27 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
     for (auto iter = table_heap->Begin(NULL); iter!=table_heap->End(); ++iter){
       bool flag=DFS(ast->child_->next_->next_->child_, iter, schema);
       if (flag){
+        for (auto index : indexes){
+          Index* idx = index->GetIndex();
+          std::vector<Field> fields_1;
+          std::vector<Field> fields_2;
+          IndexMetadata * meta = index->GetMetadata();
+          std::vector<uint32_t> key_map = meta->GetKeyMapping();
+          for (auto id: key_map){
+            fields_1.push_back(*(iter->GetField(id)));
+            if(map_.count(schema->GetColumn(id)->GetName())){
+              fields_2.push_back(*map_[schema->GetColumn(id)->GetName()]);
+            }
+            else {
+              fields_2.push_back(*(iter->GetField(id)));
+            }
+          }
+          Row delete_row(fields_1);
+          Row insert_row(fields_2);
+          RowId tmp;
+          idx->RemoveEntry(delete_row, tmp, NULL);
+          idx->InsertEntry(insert_row, tmp, NULL);
+      }
         std::vector<Field> fields_;
       
       for (uint32_t i=0; i<schema->GetColumnCount();i++){
