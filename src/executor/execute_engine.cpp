@@ -265,6 +265,7 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
   while(flag!=nullptr){
     if(flag->type_ == kNodeColumnList && strcmp(flag->child_->val_,"primary keys") == 0)
       primary.insert(flag->child_->val_);
+    flag = flag->next_;
   }
 
   while (tmp != nullptr && tmp->type_!=kNodeColumnList) {
@@ -1008,7 +1009,8 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
 
   TableHeap *table_heap = table_info->GetTableHeap();
 
-  
+  tmp = ast->child_;
+  table_name = tmp->val_;
   std::vector<Field *> fields_;
   Schema *schema = table_info->GetSchema();
   bool res = true;
@@ -1161,7 +1163,7 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
     stream.getline(cmd, 1025);
 
     // read from buffer
-    cout << cmd << endl;
+    //cout << cmd << endl;
 
     // InputCommand(cmd, buf_size);
     // create buffer for sql input
@@ -1192,7 +1194,7 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
 
     ExecuteContext context;
     Execute(MinisqlGetParserRootNode(), &context);
-    sleep(1);
+    //sleep(1);
 
     // clean memory after parse
     MinisqlParserFinish();
