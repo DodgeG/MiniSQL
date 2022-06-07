@@ -40,3 +40,40 @@ TEST(LRUReplacerTest, SampleTest) {
   lru_replacer.Victim(&value);
   EXPECT_EQ(4, value);
 }
+
+TEST(LRUReplacerTest, SampleTest2) {
+  const int N = 100000;
+  LRUReplacer lru_replacer(N);
+
+  // Scenario: unpin all elements, i.e. add them to the replacer.
+  for (int i = 0; i < N; ++i) {
+    lru_replacer.Unpin(i);
+  }
+  EXPECT_EQ(N, lru_replacer.Size());
+
+  // Scenario: get victims from the lru.
+  int value;
+  for (int i = 0; i < N; ++i) {
+    EXPECT_EQ(true, lru_replacer.Victim(&value));
+    EXPECT_EQ(i, value);
+  }
+  EXPECT_EQ(false, lru_replacer.Victim(&value));
+
+  // Scenario: pin elements in the replacer.
+  // Note that 3 has already been victimized, so pinning 3 should have no effect.
+    for (int i = 0; i < N; ++i) {
+    lru_replacer.Unpin(i);
+  }
+  EXPECT_EQ(N, lru_replacer.Size());
+    for (int i = 0; i < N / 2; ++i) {
+    lru_replacer.Pin(i);
+  }
+  EXPECT_EQ(N - N / 2, lru_replacer.Size());
+
+  // Scenario: continue looking for victims. We expect these victims.
+  for (int i = N / 2; i < N; ++i) {
+    EXPECT_EQ(true, lru_replacer.Victim(&value));
+    EXPECT_EQ(i, value);
+  }
+  EXPECT_EQ(false, lru_replacer.Victim(&value));
+}
