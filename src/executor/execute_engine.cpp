@@ -683,7 +683,6 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     return DB_SUCCESS;
   } else if (ast->type_ == kNodeColumnList && ast->next_->next_ != NULL) {  //有投影且有条件
     //有索引
-
     pSyntaxNode list = ast->child_;
     std::vector<string> column_name;
     vector<uint32_t> ind;
@@ -833,7 +832,7 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     //没索引
 
     // column name
-    tmp = ast->next_;   // tablename
+    tmp = ast->child_->next_;   // tablename
     tmp = tmp->next_;   // conditions
     tmp = tmp->child_;  // Operator or connector
     TableHeap *table_heap = table_info->GetTableHeap();
