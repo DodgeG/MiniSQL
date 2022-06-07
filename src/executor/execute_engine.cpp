@@ -996,7 +996,6 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
 
   DBStorageEngine *engine = (dbs_.find(current_db_))->second;
   CatalogManager *cata = engine->catalog_mgr_;
-
   string table_name;
   pSyntaxNode tmp = ast->child_;
   pSyntaxNode tmp2 = ast->child_->next_->next_;
@@ -1004,74 +1003,127 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
   TableInfo *table_info;
   cata->GetTable(table_name, table_info);
 
+  std::vector<IndexInfo *> indexes;
+  cata->GetTableIndexes(table_name, indexes);
+
   TableHeap *table_heap = table_info->GetTableHeap();
 
-  std::map<string, Field *> map_;
+  pSyntaxNode tmp = ast->child_;
+  table_name = tmp->val_;
+  std::vector<Field *> fields_;
   Schema *schema = table_info->GetSchema();
   bool res = true;
+  std::unordered_map<string,Field*> map_;
 
   tmp = tmp->next_;
   tmp = tmp->child_;
+  
+  while (tmp!=NULL){
+        Field *fie = NULL;
+        pSyntaxNode tmp_ = tmp->child_->next_;
+        
+        if (tmp_->type_ == kNodeNumber){
+          if (isFloat(tmp_->val_)){
 
-  while (tmp != NULL) {
-    Field *fie = NULL;
-    pSyntaxNode tmp_ = tmp->child_->next_;
-
-    if (tmp_->type_ == kNodeNumber) {
-      if (isFloat(tmp_->val_)) {
-        fie = new Field(kTypeFloat, StringToFloat(tmp_->val_));
-      } else {
-        fie = new Field(kTypeInt, (int32_t)StringToInt(tmp_->val_));
+            fie = new Field(kTypeFloat, StringToFloat(tmp_->val_));
+          } else {
+            fie = new Field(kTypeInt, (int32_t)StringToInt(tmp_->val_));
+          }
+        } else if (tmp_->type_ == kNodeString) {
+          fie = new Field(kTypeChar, tmp_->val_, strlen(tmp_->val_), false);
+        } else if (tmp_->type_ == kNodeNull) {
+          fie = new Field(kTypeInvalid);
+        }
+        map_.insert(map<string, Field*>:: value_type(tmp->child_->val_, fie));
+        tmp = tmp->next_;
       }
-    } else if (tmp_->type_ == kNodeString) {
-      fie = new Field(kTypeChar, tmp_->val_, strlen(tmp_->val_), false);
-    } else if (tmp_->type_ == kNodeNull) {
-      fie = new Field(kTypeInvalid);
-    }
-    map_.insert(map<string, Field *>::value_type(tmp->child_->val_, fie));
-    tmp = tmp->next_;
-  }
-
-  if (tmp2 == NULL) {  // no conditionsiter++
-
-    for (auto iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
+  
+  if (tmp2 == NULL){// no conditionsiter++
+  
+    for (auto iter = table_heap->Begin(NULL); iter!=table_heap->End(); ++iter){
+      for (auto index : indexes){
+          Index* idx = index->GetIndex();
+          std::vector<Field> fields_1;
+          std::vector<Field> fields_2;
+          IndexMetadata * meta = index->GetMetadata();
+          std::vector<uint32_t> key_map = meta->GetKeyMapping();
+          for (auto id: key_map){
+            fields_1.push_back(*(iter->GetField(id)));
+            if(map_.count(schema->GetColumn(id)->GetName())){
+              fields_2.push_back(*map_[schema->GetColumn(id)->GetName()]);
+            }
+            else {
+              fields_2.push_back(*(iter->GetField(id)));
+            }
+          }
+          Row delete_row(fields_1);
+          Row insert_row(fields_2);
+          RowId tmp;
+          idx->RemoveEntry(delete_row, tmp, NULL);
+          idx->InsertEntry(insert_row, tmp, NULL);
+      }
+    
       std::vector<Field> fields_;
-
-      for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+  
+      for (uint32_t i=0; i<schema->GetColumnCount();i++){
         cout << schema->GetColumnCount() << endl;
         if (map_.count(schema->GetColumn(i)->GetName())) {
           fields_.push_back(*map_[schema->GetColumn(i)->GetName()]);
-        } else {
+        }
+        else {
           fields_.push_back(*((*iter).GetField(i)));
         }
       }
-
       Row row(fields_);
 
-      res *= table_heap->UpdateTuple(row, iter->GetRowId(), NULL);
-    }
+      res*=table_heap->UpdateTuple(row, iter->GetRowId(), NULL);
 
-    if (res) {
-      cout << "[INFO] Update successfully!" << endl;
-      return DB_SUCCESS;
-    }
-
-    else {
-      cout << "[INFO] Update failed" << endl;
-      return DB_FAILED;
-    }
   }
-  // condition
-
-  for (auto iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
-    bool flag = DFS(ast->child_->next_->next_->child_, iter, schema);
-    if (flag) {
-      std::vector<Field> fields_;
-
-      for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-        if (map_.count(schema->GetColumn(i)->GetName())) {
+  
+  if (res){
+    cout << "[INFO] Update successfully!" << endl;
+    return DB_SUCCESS;
+  }
+    
+  else{
+    cout << "[INFO] Update failed" << endl;
+    return DB_FAILED;
+  }
+}
+  //condition
+      
+    for (auto iter = table_heap->Begin(NULL); iter!=table_heap->End(); ++iter){
+      bool flag=DFS(ast->child_->next_->next_->child_, iter, schema);
+      if (flag){
+        for (auto index : indexes){
+          Index* idx = index->GetIndex();
+          std::vector<Field> fields_1;
+          std::vector<Field> fields_2;
+          IndexMetadata * meta = index->GetMetadata();
+          std::vector<uint32_t> key_map = meta->GetKeyMapping();
+          for (auto id: key_map){
+            fields_1.push_back(*(iter->GetField(id)));
+            if(map_.count(schema->GetColumn(id)->GetName())){
+              fields_2.push_back(*map_[schema->GetColumn(id)->GetName()]);
+            }
+            else {
+              fields_2.push_back(*(iter->GetField(id)));
+            }
+          }
+          Row delete_row(fields_1);
+          Row insert_row(fields_2);
+          RowId tmp;
+          idx->RemoveEntry(delete_row, tmp, NULL);
+          idx->InsertEntry(insert_row, tmp, NULL);
+      }
+        std::vector<Field> fields_;
+      
+      for (uint32_t i=0; i<schema->GetColumnCount();i++){
+        if (map_.count(schema->GetColumn(i)->GetName())){
+          
           fields_.push_back(*map_[schema->GetColumn(i)->GetName()]);
-        } else {
+        }
+        else {
           fields_.push_back(*(*iter).GetField(i));
         }
       }
@@ -1079,7 +1131,6 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
       res *= table_heap->UpdateTuple(row, iter->GetRowId(), NULL);
     }
   }
-
   if (res) {
     cout << "[INFO] Update successfully!" << endl;
     return DB_SUCCESS;
