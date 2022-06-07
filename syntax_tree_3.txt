@@ -1,0 +1,16 @@
+digraph G{ 
+SYNTAX_NODE_4[label="kNodeInsert(1,47)\nid(4)"];
+SYNTAX_NODE_0[label="kNodeIdentifier(1,19)\nid(0),val(account)"];
+SYNTAX_NODE_5[label="kNodeColumnValues(1,47)\nid(5)"];
+SYNTAX_NODE_1[label="kNodeNumber(1,31)\nid(1),val(17.2)"];
+SYNTAX_NODE_2[label="kNodeString(1,43)\nid(2),val(names1701)"];
+SYNTAX_NODE_3[label="kNodeNumber(1,46)\nid(3),val(17)"];
+SYNTAX_NODE_2  ->  SYNTAX_NODE_3;
+{rank=same; SYNTAX_NODE_2,SYNTAX_NODE_3};
+SYNTAX_NODE_1  ->  SYNTAX_NODE_2;
+{rank=same; SYNTAX_NODE_1,SYNTAX_NODE_2};
+SYNTAX_NODE_5  ->  SYNTAX_NODE_1;
+SYNTAX_NODE_0  ->  SYNTAX_NODE_5;
+{rank=same; SYNTAX_NODE_0,SYNTAX_NODE_5};
+SYNTAX_NODE_4  ->  SYNTAX_NODE_0;
+}
