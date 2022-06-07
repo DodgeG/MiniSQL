@@ -265,6 +265,7 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
   while(flag!=nullptr){
     if(flag->type_ == kNodeColumnList && strcmp(flag->child_->val_,"primary keys") == 0)
       primary.insert(flag->child_->val_);
+    flag = flag->next_;
   }
 
   while (tmp != nullptr && tmp->type_!=kNodeColumnList) {
@@ -1008,7 +1009,7 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
 
   TableHeap *table_heap = table_info->GetTableHeap();
 
-  pSyntaxNode tmp = ast->child_;
+  tmp = ast->child_;
   table_name = tmp->val_;
   std::vector<Field *> fields_;
   Schema *schema = table_info->GetSchema();
