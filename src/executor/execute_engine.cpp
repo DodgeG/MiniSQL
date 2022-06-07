@@ -1163,7 +1163,7 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
     stream.getline(cmd, 1025);
 
     // read from buffer
-    cout << cmd << endl;
+    //cout << cmd << endl;
 
     // InputCommand(cmd, buf_size);
     // create buffer for sql input
@@ -1194,7 +1194,7 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
 
     ExecuteContext context;
     Execute(MinisqlGetParserRootNode(), &context);
-    sleep(1);
+    //sleep(1);
 
     // clean memory after parse
     MinisqlParserFinish();
