@@ -48,10 +48,11 @@ bool TableHeap::UpdateTuple(Row &row, const RowId &rid, Transaction *txn) {
   if (page == nullptr) {
     return false;
   }
-  // Otherwise, mark the tuple as deleted.
-  page->WLatch();
+  // Otherwise, mark
   Row *old_row = new Row(rid);
-  GetTuple(old_row, txn);
+  row.SetRowId(rid);
+  //GetTuple(old_row, txn);
+  page->WLatch();
   int status = page->UpdateTuple(row, old_row, schema_, txn, lock_manager_, log_manager_);
   page->WUnlatch();
   buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);

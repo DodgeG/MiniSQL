@@ -1,4 +1,5 @@
 digraph G{ 
+<<<<<<< HEAD
 SYNTAX_NODE_11[label="kNodeCreateTable(4,9)\nid(11)"];
 SYNTAX_NODE_0[label="kNodeIdentifier(1,20)\nid(0),val(account)"];
 SYNTAX_NODE_12[label="kNodeColumnDefinitionList(4,9)\nid(12)"];
@@ -12,13 +13,34 @@ SYNTAX_NODE_7[label="kNodeColumnDefinition(3,14)\nid(7)"];
 SYNTAX_NODE_4[label="kNodeIdentifier(3,4)\nid(4),val(name)"];
 SYNTAX_NODE_6[label="kNodeColumnType(3,13)\nid(6),val(char)"];
 SYNTAX_NODE_5[label="kNodeNumber(3,12)\nid(5),val(30)"];
+=======
+SYNTAX_NODE_11[label="kNodeCreateTable(1,44)\nid(11)"];
+SYNTAX_NODE_0[label="kNodeIdentifier(1,15)\nid(0),val(t1)"];
+SYNTAX_NODE_12[label="kNodeColumnDefinitionList(1,44)\nid(12)"];
+SYNTAX_NODE_3[label="kNodeColumnDefinition(1,22)\nid(3)"];
+SYNTAX_NODE_1[label="kNodeIdentifier(1,17)\nid(1),val(a)"];
+SYNTAX_NODE_2[label="kNodeColumnType(1,21)\nid(2),val(int)"];
+SYNTAX_NODE_1  ->  SYNTAX_NODE_2;
+{rank=same; SYNTAX_NODE_1,SYNTAX_NODE_2};
+SYNTAX_NODE_3  ->  SYNTAX_NODE_1;
+SYNTAX_NODE_7[label="kNodeColumnDefinition(1,35)\nid(7)"];
+SYNTAX_NODE_4[label="kNodeIdentifier(1,24)\nid(4),val(b)"];
+SYNTAX_NODE_6[label="kNodeColumnType(1,33)\nid(6),val(char)"];
+SYNTAX_NODE_5[label="kNodeNumber(1,32)\nid(5),val(20)"];
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
 SYNTAX_NODE_6  ->  SYNTAX_NODE_5;
 SYNTAX_NODE_4  ->  SYNTAX_NODE_6;
 {rank=same; SYNTAX_NODE_4,SYNTAX_NODE_6};
 SYNTAX_NODE_7  ->  SYNTAX_NODE_4;
+<<<<<<< HEAD
 SYNTAX_NODE_10[label="kNodeColumnDefinition(4,9)\nid(10)"];
 SYNTAX_NODE_8[label="kNodeIdentifier(4,4)\nid(8),val(year)"];
 SYNTAX_NODE_9[label="kNodeColumnType(4,8)\nid(9),val(int)"];
+=======
+SYNTAX_NODE_10[label="kNodeColumnDefinition(1,44)\nid(10)"];
+SYNTAX_NODE_8[label="kNodeIdentifier(1,37)\nid(8),val(c)"];
+SYNTAX_NODE_9[label="kNodeColumnType(1,43)\nid(9),val(float)"];
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
 SYNTAX_NODE_8  ->  SYNTAX_NODE_9;
 {rank=same; SYNTAX_NODE_8,SYNTAX_NODE_9};
 SYNTAX_NODE_10  ->  SYNTAX_NODE_8;

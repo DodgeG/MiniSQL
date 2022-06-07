@@ -1,4 +1,5 @@
 digraph G{ 
+<<<<<<< HEAD
 SYNTAX_NODE_4[label="kNodeInsert(1,47)\nid(4)"];
 SYNTAX_NODE_0[label="kNodeIdentifier(1,19)\nid(0),val(account)"];
 SYNTAX_NODE_5[label="kNodeColumnValues(1,47)\nid(5)"];
@@ -13,4 +14,9 @@ SYNTAX_NODE_5  ->  SYNTAX_NODE_1;
 SYNTAX_NODE_0  ->  SYNTAX_NODE_5;
 {rank=same; SYNTAX_NODE_0,SYNTAX_NODE_5};
 SYNTAX_NODE_4  ->  SYNTAX_NODE_0;
+=======
+SYNTAX_NODE_1[label="kNodeExecFile(1,39)\nid(1)"];
+SYNTAX_NODE_0[label="kNodeString(1,39)\nid(0),val(/mnt/e/minisql-1/src/exe.txt)"];
+SYNTAX_NODE_1  ->  SYNTAX_NODE_0;
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
 }

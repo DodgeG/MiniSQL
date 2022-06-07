@@ -5,6 +5,40 @@
 #include "glog/logging.h"
 #include "index/b_plus_tree.h"
 #include "index/index.h"
+<<<<<<< HEAD
+=======
+#include <typeinfo>
+#include <algorithm>
+#include "parser/syntax_tree_printer.h"
+#include "utils/tree_file_mgr.h"
+#include "fstream"
+
+extern "C" {
+int yyparse(void);
+// FILE *yyin;
+#include "parser/minisql_lex.h"
+#include "parser/parser.h"
+}
+
+void InitGoogleLog(char *argv) {
+  FLAGS_logtostderr = true;
+  FLAGS_colorlogtostderr = true;
+  google::InitGoogleLogging(argv);
+}
+
+void InputCommand(char *input, const int len) {
+  memset(input, 0, len);
+  printf("minisql > ");
+  int i = 0;
+  char ch;
+  while ((ch = getchar()) != ';') {
+    input[i++] = ch;
+  }
+  input[i] = ch;    // ;
+  getchar();        // remove enter
+}
+
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
 
 ExecuteEngine::ExecuteEngine() {}
 
@@ -96,10 +130,12 @@ bool DFS(pSyntaxNode ast, TableIterator &iter, Schema *schema) {
     string col_name = attr->val_;
     schema->GetColumnIndex(col_name, index);
     Field *fie = iter->GetField(index);
+    
     const char *l_value = fie->GetData();
     char *item = ast->val_;
     if (strcmp(item, "=") == 0 && strcmp(l_value, r_value) == 0)
       return true;
+<<<<<<< HEAD
     else if (strcmp(item, ">") == 0 && strcmp(l_value, r_value) > 0)
       return true;
     else if (strcmp(item, ">=") == 0 && strcmp(l_value, r_value) >= 0)
@@ -109,6 +145,17 @@ bool DFS(pSyntaxNode ast, TableIterator &iter, Schema *schema) {
     else if (strcmp(item, "<") == 0 && strcmp(l_value, r_value) < 0)
       return true;
     else if (strcmp(item, "!=") == 0 && strcmp(l_value, r_value) != 0)
+=======
+    else if (strcmp(item,">")==0 && strcmp(l_value, r_value) > 0)
+      return true;
+    else if (strcmp(item,">=")==0 && strcmp(l_value, r_value) >= 0)
+      return true;
+    else if (strcmp(item,"<=")==0 && strcmp(l_value, r_value) <= 0)
+      return true;
+    else if (strcmp(item,"<")==0 && strcmp(l_value, r_value) < 0)
+      return true;
+    else if (strcmp(item,"!=")==0 && strcmp(l_value, r_value) != 0)
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
       return true;
 
     return false;
@@ -269,7 +316,11 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
     }
   }
 
+<<<<<<< HEAD
   printf("size:%d", (int)columns.size());
+=======
+  //printf("size:%d",(int)columns.size());
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
   TableSchema *schema = new TableSchema(columns);
   if (cata->CreateTable(table_name, schema, nullptr, table_info) == DB_SUCCESS) {
     printf("[INFO] Create table successfully!\n");
@@ -410,6 +461,7 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
 
   DBStorageEngine *engine = (dbs_.find(current_db_))->second;
   CatalogManager *cata = engine->catalog_mgr_;
+<<<<<<< HEAD
 
   ast = ast->child_;
   string tablename = ast->next_->val_;
@@ -433,12 +485,38 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     ast = ast->next_;
 
     TableHeap *table_heap = table_info->GetTableHeap();
+=======
+  
+  ast=ast->child_;
+  if (ast->type_ == kNodeAllColumns && ast->next_->next_ == NULL) {
+
+    ast = ast->next_;
+    string tablename = ast->val_;
+    TableInfo *table_info = NULL;
+    cata->GetTable(tablename, table_info);
+    // column name
+    Schema *schema = table_info->GetSchema();
+
+    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+      cout << left << setw(15) << schema->GetColumn(i)->GetName();
+      
+    }
+    cout << endl;
+
+    TableHeap *table_heap = table_info->GetTableHeap();
+    auto iter1 = table_heap->Begin(nullptr);
+    //printf("%d\n%d\n",iter1->GetRowId().GetPageId(),iter1->GetRowId().GetSlotNum());
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
       for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
         cout << "|";
         cout << left << setfill(' ') << setw(20) << (*iter).GetField(i)->GetData();
       }
+<<<<<<< HEAD
       cout << "|" << endl;
+=======
+      
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
       cout << endl;
     }
     cout << left << setfill('-') << setw(size_table) << '-';
@@ -451,8 +529,10 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     std::vector<string> column_name;
     while (ast != NULL) {
       column_name.push_back(ast->val_);
+      cout << ast->val_ << endl;
       ast = ast->next_;
     }
+<<<<<<< HEAD
 
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
@@ -460,6 +540,25 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
       for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
         int j = 0;
         cout << "|";
+=======
+    // column name
+    Schema *schema = table_info->GetSchema();
+    int j = 0;
+    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+      
+      if (schema->GetColumn(i)->GetName() == column_name[j]) {
+        cout << left << setw(15) << schema->GetColumn(i)->GetName();
+        j++;
+      }
+    }
+    cout << endl;
+
+    TableHeap *table_heap = table_info->GetTableHeap();
+    for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
+      int j = 0;
+      for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+        
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
         if (schema->GetColumn(i)->GetName() == column_name[j]) {
           cout << left << setw(20) << (*iter).GetField(i)->GetData();
           j++;
@@ -471,6 +570,7 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     return DB_SUCCESS;
   } else if (ast->type_ == kNodeAllColumns && ast->next_->next_ != NULL) {  //无投影但有条件
     //有索引
+<<<<<<< HEAD
     pSyntaxNode tmp = ast->next_->next_->child_;
     if (tmp->type_ == kNodeCompareOperator) {
       string attr_name = ast->next_->next_->child_->child_->val_;
@@ -599,21 +699,83 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     ast = ast->next_;
     ast = ast->next_;
     ast = ast->child_;
+=======
+    ast = ast->next_;
+    string tablename = ast->val_;
+    TableInfo *table_info = NULL;
+    cata->GetTable(tablename, table_info);
+    // column name
+    Schema *schema = table_info->GetSchema();
+
+    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+      cout << left << setw(15) << schema->GetColumn(i)->GetName();
+      
+    }
+    cout << endl;
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
 
     TableHeap *table_heap = table_info->GetTableHeap();
+    auto iter1 = table_heap->Begin(nullptr);
+    //printf("%d\n%d\n",iter1->GetRowId().GetPageId(),iter1->GetRowId().GetSlotNum());
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
       if (DFS(ast, iter, schema)) {
         for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+<<<<<<< HEAD
           cout << left << setw(20) << (*iter).GetField(i)->GetData();
         }
         cout << endl;
+=======
+        cout << left << setw(15) << (*iter).GetField(i)->GetData();        
       }
+      
+      cout << endl;
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
+      }
+      
     }
     return DB_SUCCESS;
+<<<<<<< HEAD
   } else if (ast->type_ == kNodeColumnList && ast->next_->next_ != NULL) {  //有投影且有条件
     //有索引
 
     pSyntaxNode list = ast->child_;
+=======
+    //没索引
+    // ast = ast->next_;
+    // string tablename = ast->val_;
+    // TableInfo *table_info = NULL;
+    // cata->GetTable(tablename, table_info);
+    // // column name
+    // Schema *schema = table_info->GetSchema();
+    // for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+    //   cout << left << setw(15) << schema->GetColumn(i)->GetName();
+    // }
+    // cout << endl;
+
+    // ast = ast->next_;
+    // ast = ast->child_;
+
+    // TableHeap *table_heap = table_info->GetTableHeap();
+    // for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
+    //   if (DFS(ast->child_, iter, schema )|| true) {
+    //     for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+    //       cout << left << setw(15) << (*iter).GetField(i)->GetData();
+    //     }
+    //     cout << endl;
+    //   }
+    // }
+    // return DB_SUCCESS;
+  } else if (ast->type_ == kNodeColumnList && ast->next_->next_ != NULL) {
+     string tablename = ast->next_->val_;
+    //有索引
+    
+    //没索引
+   
+    pSyntaxNode tmp = ast;
+    TableInfo *table_info = NULL;
+    cata->GetTable(tablename, table_info);
+    ast = ast->child_;
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
     std::vector<string> column_name;
     vector<uint32_t> ind;
     while (list != NULL) {
@@ -623,6 +785,7 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
       ind.push_back(id_);
       list = list->next_;
     }
+<<<<<<< HEAD
     pSyntaxNode tmp = ast->next_->next_->child_;
     if (tmp->type_ == kNodeCompareOperator) {
       string attr_name = ast->next_->next_->child_->child_->val_;
@@ -729,6 +892,16 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
           }
           return DB_SUCCESS;
         }
+=======
+    // column name
+    Schema *schema = table_info->GetSchema();
+    int j = 0;
+    for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+      
+      if (schema->GetColumn(i)->GetName() == column_name[j]) {
+        cout << left << setw(15) << schema->GetColumn(i)->GetName();
+        j++;
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
       }
     }
 
@@ -740,9 +913,10 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     tmp = tmp->child_;             // Operator or connector
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
-      if (DFS(tmp, iter, schema)) {
+      if (DFS(tmp->child_, iter, schema)) {
+        int j = 0;
         for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-          int j = 0;
+          
           if (schema->GetColumn(i)->GetName() == column_name[j]) {
             cout << left << setw(20) << (*iter).GetField(i)->GetData();
             j++;
@@ -773,7 +947,7 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
   tmp = tmp->next_;
   tmp = tmp->child_;
   cata->GetTable(table_name, table_info);
-  cout << "111111" << endl;
+  
   while (tmp != NULL) {
     //加到fields_里
     Field *fie = NULL;
@@ -793,17 +967,26 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
     tmp = tmp->next_;
   }
   //构造row
-  cout << "222222222" << endl;
+  
   TableHeap *table_heap = table_info->GetTableHeap();
+<<<<<<< HEAD
   // Row row(fields_);
   printf("row:%d\n", (int)fields_.size());
   Row *row = new Row(fields_);
   table_heap->InsertTuple(*row, nullptr);
   printf("%d\n", (int)(row->GetRowId().GetSlotNum()));
   printf("%d\n", (int)(row->GetRowId().GetPageId()));
+=======
+  //Row row(fields_);
+  //printf("row:%d\n",(int)fields_.size());
+  Row *row = new Row(fields_);
+  table_heap->InsertTuple(*row, nullptr);
+  //printf("%d\n",(int)(row->GetRowId().GetSlotNum()));
+  //printf("%d\n",(int)(row->GetRowId().GetPageId()));
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
   std::vector<IndexInfo *> indexes;
   if (cata->GetTableIndexes(table_name, indexes) == DB_SUCCESS) {
-    cout << "3333333333" << endl;
+    
     for (auto index_info : indexes) {
       IndexMetadata *meta = index_info->GetMetadata();
       std::vector<uint32_t> key_map = meta->GetKeyMapping();
@@ -867,6 +1050,7 @@ dberr_t ExecuteEngine::ExecuteDelete(pSyntaxNode ast, ExecuteContext *context) {
     tmp = tmp->next_;
     tmp = tmp->child_;
     cata->GetTableIndexes(table_name, indexes);
+    
     for (auto iter = table_heap->Begin(nullptr); iter != table_heap->End(); iter++) {
       if (DFS(tmp, iter, schema)) {
         if (indexes.size() != 0) {
@@ -897,12 +1081,21 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
 
   DBStorageEngine *engine = (dbs_.find(current_db_))->second;
   CatalogManager *cata = engine->catalog_mgr_;
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
   string table_name;
+  pSyntaxNode tmp = ast->child_;
+  pSyntaxNode tmp2 = ast->child_->next_->next_;
+  table_name = tmp->val_;
   TableInfo *table_info;
   cata->GetTable(table_name, table_info);
+
   TableHeap *table_heap = table_info->GetTableHeap();
 
+<<<<<<< HEAD
   pSyntaxNode tmp = ast->child_;
   table_name = tmp->val_;
   std::vector<Field *> fields_;
@@ -924,6 +1117,23 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
         tmp_ = tmp_->next_;
         if (tmp_->type_ == kNodeNumber) {
           if (isFloat(tmp_->val_)) {
+=======
+
+  
+  std::map<string, Field*> map_;
+  Schema * schema = table_info->GetSchema();
+  bool res = true;
+
+  tmp = tmp->next_;
+  tmp = tmp->child_;
+  
+  while (tmp!=NULL){
+        Field *fie = NULL;
+        pSyntaxNode tmp_ = tmp->child_->next_;
+        
+        if (tmp_->type_ == kNodeNumber){
+          if (isFloat(tmp_->val_)){
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
             fie = new Field(kTypeFloat, StringToFloat(tmp_->val_));
           } else {
             fie = new Field(kTypeInt, (int32_t)StringToInt(tmp_->val_));
@@ -933,19 +1143,40 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
         } else if (tmp_->type_ == kNodeNull) {
           fie = new Field(kTypeInvalid);
         }
-        fields_.push_back(*fie);
+        map_.insert(map<string, Field*>:: value_type(tmp->child_->val_, fie));
         tmp = tmp->next_;
       }
+<<<<<<< HEAD
 
       for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
         if (count(column_.begin(), column_.end(), schema->GetColumn(i)->GetName())) {
           continue;
         } else {
           fields_.push_back(*(*iter).GetField(i));
+=======
+  
+  if (tmp2 == NULL){// no conditionsiter++
+  
+    for (auto iter = table_heap->Begin(NULL); iter!=table_heap->End(); ++iter){
+    
+      std::vector<Field> fields_;
+  
+      for (uint32_t i=0; i<schema->GetColumnCount();i++){
+        cout << schema->GetColumnCount() << endl;
+        if (map_.count(schema->GetColumn(i)->GetName())){
+          fields_.push_back(*map_[schema->GetColumn(i)->GetName()]);
         }
+        else {
+          // cout << "f:   " << (*iter).GetField(i)->GetData() << endl;
+          fields_.push_back(*((*iter).GetField(i)));
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
+        }
+        // cout << "field: " << (fields_.end()-1)->GetData() << endl;
       }
+   
       Row row(fields_);
 
+<<<<<<< HEAD
       res *= table_heap->UpdateTuple(row, iter->GetRowId(), NULL);
     }
 
@@ -994,14 +1225,53 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
         if (count(column_.begin(), column_.end(), schema->GetColumn(i)->GetName())) {
           continue;
         } else {
+=======
+      res*=table_heap->UpdateTuple(row, iter->GetRowId(), NULL);
+
+  }
+  
+  if (res){
+    cout << "[INFO] Update successfully!" << endl;
+    return DB_SUCCESS;
+  }
+    
+  else{
+    cout << "[INFO] Update failed" << endl;
+    return DB_FAILED;
+  }
+}
+  //condition
+      
+    for (auto iter = table_heap->Begin(NULL); iter!=table_heap->End(); ++iter){
+      bool flag=DFS(ast->child_->next_->next_->child_, iter, schema);
+      if (flag){
+        std::vector<Field> fields_;
+      
+      for (uint32_t i=0; i<schema->GetColumnCount();i++){
+        if (map_.count(schema->GetColumn(i)->GetName())){
+          
+          fields_.push_back(*map_[schema->GetColumn(i)->GetName()]);
+        }
+        else {
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
           fields_.push_back(*(*iter).GetField(i));
         }
       }
       Row row(fields_);
+<<<<<<< HEAD
       res *= table_heap->UpdateTuple(row, iter->GetRowId(), NULL);
     }
   }
   if (res) {
+=======
+
+      res*=table_heap->UpdateTuple(row, iter->GetRowId(), NULL);
+      }
+      
+  }
+
+  if (res){
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
     cout << "[INFO] Update successfully!" << endl;
     return DB_SUCCESS;
   }
@@ -1010,13 +1280,80 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
     cout << "[INFO] Update failed" << endl;
     return DB_FAILED;
   }
+<<<<<<< HEAD
+=======
+   
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
 }
 
 dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteExecfile" << std::endl;
 #endif
-  // string file = ast->child_->val_;
+    string file_name = ast->child_->val_;
+    fstream stream;
+    stream.open(file_name);
+    cout << stream.is_open() << endl;
+    
+    
+  // command buffer
+  const int buf_size = 1024;
+  char cmd[buf_size];
+   
+  TreeFileManagers syntax_tree_file_mgr("syntax_tree_");
+  [[maybe_unused]] uint32_t syntax_tree_id = 0;
+
+  while (1) {
+    stream.getline(cmd, 1025);
+    
+    // read from buffer
+    cout << cmd << endl;
+    
+    // InputCommand(cmd, buf_size);
+    // create buffer for sql input
+    YY_BUFFER_STATE bp = yy_scan_string(cmd);
+    if (bp == nullptr) {
+      LOG(ERROR) << "Failed to create yy buffer state." << std::endl;
+      exit(1);
+    }
+    yy_switch_to_buffer(bp);
+
+    // init parser module
+    MinisqlParserInit();
+
+    // parse
+    yyparse();
+
+    // parse result handle
+    if (MinisqlParserGetError()) {
+      // error
+      printf("%s\n", MinisqlParserGetErrorMessage());
+    } else {
+#ifdef ENABLE_PARSER_DEBUG
+      printf("[INFO] Sql syntax parse ok!\n");
+      SyntaxTreePrinter printer(MinisqlGetParserRootNode());
+      printer.PrintTree(syntax_tree_file_mgr[syntax_tree_id++]);
+#endif
+    }
+
+    ExecuteContext context;
+    Execute(MinisqlGetParserRootNode(), &context);
+    sleep(1);
+
+    // clean memory after parse
+    MinisqlParserFinish();
+    yy_delete_buffer(bp);
+    yylex_destroy();
+
+    // quit condition
+    if (context.flag_quit_) {
+      printf("bye!\n");
+      break;
+    }
+    if (stream.eof()){
+      break;
+    }
+  }
   return DB_FAILED;
 }
 

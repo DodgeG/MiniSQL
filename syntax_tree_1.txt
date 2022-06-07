@@ -1,5 +1,10 @@
 digraph G{ 
+<<<<<<< HEAD
 SYNTAX_NODE_1[label="kNodeUseDB(1,8)\nid(1)"];
 SYNTAX_NODE_0[label="kNodeIdentifier(1,8)\nid(0),val(db11)"];
+=======
+SYNTAX_NODE_1[label="kNodeUseDB(1,6)\nid(1)"];
+SYNTAX_NODE_0[label="kNodeIdentifier(1,6)\nid(0),val(db)"];
+>>>>>>> d20d40b2e95823c94c9fb1a322567ae9d39c9a27
 SYNTAX_NODE_1  ->  SYNTAX_NODE_0;
 }
