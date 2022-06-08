@@ -138,7 +138,7 @@ bool DFS(pSyntaxNode ast, TableIterator &iter, Schema *schema) {
       return true;
     else if (strcmp(item, "<") == 0 && strcmp(l_value, r_value) < 0)
       return true;
-    else if (strcmp(item, "!=") == 0 && strcmp(l_value, r_value) != 0)
+    else if (strcmp(item, "<>") == 0 && strcmp(l_value, r_value) != 0)
       return true;
 
     return false;

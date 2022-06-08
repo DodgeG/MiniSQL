@@ -9,7 +9,7 @@ static const std::string db_name = "bp_tree_index_test.db";
 
 TEST(BPlusTreeTests, BPlusTreeIndexGenericKeyTest) {
   using INDEX_KEY_TYPE = GenericKey<32>;
-  //using INDEX_COMPARATOR_TYPE = GenericComparator<32>;
+  using INDEX_COMPARATOR_TYPE = GenericComparator<32>;
   DBStorageEngine engine(db_name);
   SimpleMemHeap heap;
   std::vector<Column *> columns = {
@@ -24,15 +24,15 @@ TEST(BPlusTreeTests, BPlusTreeIndexGenericKeyTest) {
           Field(TypeId::kTypeInt, 27),
           Field(TypeId::kTypeChar, const_cast<char *>("minisql"), 7, true)
   };
-  //Row key(fields);
-  //INDEX_KEY_TYPE k1;
+  Row key(fields);
+  INDEX_KEY_TYPE k1;
 
-  //k1.SerializeFromKey(key, key_schema);
+  k1.SerializeFromKey(key, key_schema);
   INDEX_KEY_TYPE k2;
   Row copy_key(fields);
   k2.SerializeFromKey(copy_key, key_schema);
-  //INDEX_COMPARATOR_TYPE comparator(key_schema);
-  //ASSERT_EQ(0, comparator(k1, k2));
+  INDEX_COMPARATOR_TYPE comparator(key_schema);
+  ASSERT_EQ(0, comparator(k1, k2));
 }
 
 TEST(BPlusTreeTests, BPlusTreeIndexSimpleTest) {
