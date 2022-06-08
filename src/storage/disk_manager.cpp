@@ -50,6 +50,7 @@ page_id_t DiskManager::AllocatePage() {
     if (meta_page->extent_used_page_[extent_id] < BITMAP_SIZE) break;
   if (extent_id == meta_page->num_extents_) (meta_page->num_extents_)++;
   (meta_page->extent_used_page_[extent_id])++;
+  WritePhysicalPage(META_PAGE_ID, meta_data_);
 
   char bitmap_data_[PAGE_SIZE];
   ReadPhysicalPage(extent_id * BITMAP_SIZE + 1, bitmap_data_);
@@ -67,6 +68,7 @@ void DiskManager::DeAllocatePage(page_id_t logical_page_id) {
   if (!--(meta_page->extent_used_page_[extent_id])) {
     if (meta_page->num_extents_ == extent_id + 1) (meta_page->num_extents_)--;
   }
+  WritePhysicalPage(META_PAGE_ID, meta_data_);
 
   char bitmap_data_[PAGE_SIZE];
   ReadPhysicalPage(extent_id * BITMAP_SIZE + 1, bitmap_data_);
