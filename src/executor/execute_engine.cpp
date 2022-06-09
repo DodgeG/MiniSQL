@@ -274,8 +274,6 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
   vector<string> index_column;
 
   while (tmp != nullptr && tmp->type_!=kNodeColumnList) {
-
-
     nullable = true;
     unique = false;
     if (tmp->val_ != NULL) {
