@@ -232,6 +232,7 @@ dberr_t ExecuteEngine::ExecuteShowTables(pSyntaxNode ast, ExecuteContext *contex
     return DB_FAILED;
   } else {
     printf("[TITLE] Tables_in_%s\n", current_db_.c_str());
+    cout << tables.size() << endl;
     for (auto iter = tables.begin(); iter != tables.end(); ++iter) {
       printf("[TABLE] %s\n", (*iter)->GetTableName().c_str());
     }
@@ -1079,7 +1080,7 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
       std::vector<Field> fields_;
   
       for (uint32_t i=0; i<schema->GetColumnCount();i++){
-        cout << schema->GetColumnCount() << endl;
+        //cout << schema->GetColumnCount() << endl;
         if (map_.count(schema->GetColumn(i)->GetName())) {
           fields_.push_back(*map_[schema->GetColumn(i)->GetName()]);
         }
