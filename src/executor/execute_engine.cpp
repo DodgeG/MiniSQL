@@ -848,9 +848,9 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     //没索引
 
     // column name
-    tmp = ast->child_->next_;   // tablename
-    tmp = tmp->next_;   // conditions
-    tmp = tmp->child_;  // Operator or connector
+    // tmp = ast->child_->next_;   // tablename
+    // tmp = tmp->next_;   // conditions
+    // tmp = tmp->child_;  // Operator or connector
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
       if (DFS(tmp, iter, schema)) {
@@ -867,6 +867,8 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
         cout << endl;
       }
     }
+    
+
     return DB_SUCCESS;
   }
   return DB_FAILED;
