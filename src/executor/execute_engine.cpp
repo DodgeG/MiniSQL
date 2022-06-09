@@ -525,8 +525,9 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
 
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
+      int j = 0;
       for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-        int j = 0;
+        
         if (schema->GetColumn(i)->GetName() == column_name[j]) {
           cout << "|";
           cout << left << setfill(' ')<<setw(20) << (*iter).GetField(i)->GetData();
@@ -852,7 +853,7 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     tmp = tmp->child_;  // Operator or connector
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
-      if (DFS(tmp->child_, iter, schema)) {
+      if (DFS(tmp, iter, schema)) {
         int j = 0;
         for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
           if (schema->GetColumn(i)->GetName() == column_name[j]) {
