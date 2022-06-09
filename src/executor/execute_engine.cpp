@@ -257,22 +257,26 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
   TypeId type_;
   uint32_t index = 0;
   uint32_t len = 0;
-  string constraint[3] = {"unique", "not null"};
+  string constraint[2] = {"unique", "not null"};
   string TYPE[3] = {"char", "int", "float"};
 
   set<string> primary;
   pSyntaxNode flag = tmp->next_;
   while(flag!=nullptr){
-    if(flag->type_ == kNodeColumnList && strcmp(flag->child_->val_,"primary keys") == 0)
+    if(flag->type_ == kNodeColumnList && strcmp(flag->val_,"primary keys") == 0)
       primary.insert(flag->child_->val_);
     flag = flag->next_;
   }
 
+  bool nullable;
+  bool unique;
+  vector<string> index_column;
+
   while (tmp != nullptr && tmp->type_!=kNodeColumnList) {
 
 
-    bool nullable = true;
-    bool unique = false;
+    nullable = true;
+    unique = false;
     if (tmp->val_ != NULL) {
       if (tmp->val_ == constraint[0]) {
         unique = true;
@@ -288,6 +292,10 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
       nullable = false;
     }
     pSyntaxNode type = attr->next_;//类型
+
+    if(unique){
+      index_column.push_back(column_name);
+    }
 
     if (type->val_ == TYPE[0]) {  //如果是字符串型
       type_ = kTypeChar;
@@ -313,6 +321,13 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
 
   TableSchema *schema = new TableSchema(columns);
   if (cata->CreateTable(table_name, schema, nullptr, table_info) == DB_SUCCESS) {
+    IndexInfo *index_info;
+    for(auto column : index_column){
+      vector<string> index_key;
+      index_key.clear();
+      index_key.push_back(column);
+      cata->CreateIndex(table_name,column,index_key,nullptr,index_info);
+    }
     printf("[INFO] Create table successfully!\n");
     return DB_SUCCESS;
   } else {
@@ -436,7 +451,7 @@ dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context
     IndexInfo *tmp;
     if (cata->GetIndex(table->GetTableName(), index_name, tmp) == DB_SUCCESS) {
       cata->DropIndex(table->GetTableName(), index_name);
-      printf("[ERROR] Drop index successfully!\n");
+      printf("[INFO] Drop index successfully!\n");
       return DB_SUCCESS;
     }
   }
@@ -933,7 +948,7 @@ dberr_t ExecuteEngine::ExecuteDelete(pSyntaxNode ast, ExecuteContext *context) {
     cata->GetTable(table_name, table_info);
     cata->GetTableIndexes(table_name, indexes);
     TableHeap *table_heap = table_info->GetTableHeap();
-    for (auto iter = table_heap->Begin(nullptr); iter != table_heap->End(); iter++) {
+    for (auto iter = table_heap->Begin(nullptr); iter != table_heap->End(); ++iter) {
       if (indexes.size() != 0) {
         for (auto index : indexes) {
           Index *idx = index->GetIndex();
@@ -961,7 +976,7 @@ dberr_t ExecuteEngine::ExecuteDelete(pSyntaxNode ast, ExecuteContext *context) {
     tmp = tmp->child_;
     cata->GetTableIndexes(table_name, indexes);
 
-    for (auto iter = table_heap->Begin(nullptr); iter != table_heap->End(); iter++) {
+    for (auto iter = table_heap->Begin(nullptr); iter != table_heap->End(); ++iter) {
       if (DFS(tmp, iter, schema)) {
         if (indexes.size() != 0) {
           for (auto index : indexes) {
@@ -1053,7 +1068,7 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
           }
           Row delete_row(fields_1);
           Row insert_row(fields_2);
-          RowId tmp;
+          RowId tmp(iter->GetRowId());
           idx->RemoveEntry(delete_row, tmp, NULL);
           idx->InsertEntry(insert_row, tmp, NULL);
       }
