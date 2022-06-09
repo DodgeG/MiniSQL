@@ -1,23 +1,16 @@
 digraph G{ 
-SYNTAX_NODE_7[label="kNodeSelect(1,29)\nid(7)"];
-SYNTAX_NODE_2[label="kNodeColumnList(1,15)\nid(2),val(select columns)"];
-SYNTAX_NODE_0[label="kNodeIdentifier(1,8)\nid(0),val(a)"];
-SYNTAX_NODE_1[label="kNodeIdentifier(1,10)\nid(1),val(b)"];
-SYNTAX_NODE_0  ->  SYNTAX_NODE_1;
-{rank=same; SYNTAX_NODE_0,SYNTAX_NODE_1};
-SYNTAX_NODE_2  ->  SYNTAX_NODE_0;
-SYNTAX_NODE_3[label="kNodeIdentifier(1,18)\nid(3),val(t1)"];
-SYNTAX_NODE_8[label="kNodeConditions(1,29)\nid(8)"];
-SYNTAX_NODE_5[label="kNodeCompareOperator(1,27)\nid(5),val(=)"];
-SYNTAX_NODE_4[label="kNodeIdentifier(1,26)\nid(4),val(a)"];
-SYNTAX_NODE_6[label="kNodeNumber(1,28)\nid(6),val(2)"];
-SYNTAX_NODE_4  ->  SYNTAX_NODE_6;
-{rank=same; SYNTAX_NODE_4,SYNTAX_NODE_6};
-SYNTAX_NODE_5  ->  SYNTAX_NODE_4;
-SYNTAX_NODE_8  ->  SYNTAX_NODE_5;
-SYNTAX_NODE_3  ->  SYNTAX_NODE_8;
-{rank=same; SYNTAX_NODE_3,SYNTAX_NODE_8};
+SYNTAX_NODE_4[label="kNodeInsert(1,38)\nid(4)"];
+SYNTAX_NODE_0[label="kNodeIdentifier(1,14)\nid(0),val(t1)"];
+SYNTAX_NODE_5[label="kNodeColumnValues(1,38)\nid(5)"];
+SYNTAX_NODE_1[label="kNodeNumber(1,23)\nid(1),val(2)"];
+SYNTAX_NODE_2[label="kNodeString(1,30)\nid(2),val(bbb)"];
+SYNTAX_NODE_3[label="kNodeNumber(1,37)\nid(3),val(2.33)"];
 SYNTAX_NODE_2  ->  SYNTAX_NODE_3;
 {rank=same; SYNTAX_NODE_2,SYNTAX_NODE_3};
-SYNTAX_NODE_7  ->  SYNTAX_NODE_2;
+SYNTAX_NODE_1  ->  SYNTAX_NODE_2;
+{rank=same; SYNTAX_NODE_1,SYNTAX_NODE_2};
+SYNTAX_NODE_5  ->  SYNTAX_NODE_1;
+SYNTAX_NODE_0  ->  SYNTAX_NODE_5;
+{rank=same; SYNTAX_NODE_0,SYNTAX_NODE_5};
+SYNTAX_NODE_4  ->  SYNTAX_NODE_0;
 }

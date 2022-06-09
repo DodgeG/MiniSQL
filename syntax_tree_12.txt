@@ -1,15 +1,8 @@
 digraph G{ 
-SYNTAX_NODE_4[label="kNodeUpdate(1,19)\nid(4)"];
-SYNTAX_NODE_0[label="kNodeIdentifier(1,9)\nid(0),val(t1)"];
-SYNTAX_NODE_5[label="kNodeUpdateValues(1,19)\nid(5)"];
-SYNTAX_NODE_3[label="kNodeUpdateValue(1,18)\nid(3)"];
-SYNTAX_NODE_1[label="kNodeIdentifier(1,15)\nid(1),val(c)"];
-SYNTAX_NODE_2[label="kNodeNumber(1,18)\nid(2),val(2)"];
-SYNTAX_NODE_1  ->  SYNTAX_NODE_2;
-{rank=same; SYNTAX_NODE_1,SYNTAX_NODE_2};
-SYNTAX_NODE_3  ->  SYNTAX_NODE_1;
-SYNTAX_NODE_5  ->  SYNTAX_NODE_3;
-SYNTAX_NODE_0  ->  SYNTAX_NODE_5;
-{rank=same; SYNTAX_NODE_0,SYNTAX_NODE_5};
-SYNTAX_NODE_4  ->  SYNTAX_NODE_0;
+SYNTAX_NODE_2[label="kNodeSelect(1,17)\nid(2)"];
+SYNTAX_NODE_0[label="kNodeAllColumns(1,8)\nid(0)"];
+SYNTAX_NODE_1[label="kNodeIdentifier(1,16)\nid(1),val(t2)"];
+SYNTAX_NODE_0  ->  SYNTAX_NODE_1;
+{rank=same; SYNTAX_NODE_0,SYNTAX_NODE_1};
+SYNTAX_NODE_2  ->  SYNTAX_NODE_0;
 }
