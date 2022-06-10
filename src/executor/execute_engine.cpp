@@ -1056,6 +1056,7 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
   if (tmp2 == NULL){// no conditionsiter++
   
     for (auto iter = table_heap->Begin(NULL); iter!=table_heap->End(); ++iter){
+      cout << "7777" << endl;
       for (auto index : indexes){
           Index* idx = index->GetIndex();
           std::vector<Field> fields_1;
@@ -1127,7 +1128,7 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
           }
           Row delete_row(fields_1);
           Row insert_row(fields_2);
-          RowId tmp;
+          RowId tmp = iter->GetRowId();
           idx->RemoveEntry(delete_row, tmp, NULL);
           idx->InsertEntry(insert_row, tmp, NULL);
       }

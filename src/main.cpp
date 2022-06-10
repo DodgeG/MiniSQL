@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 
     ExecuteContext context;
     engine.Execute(MinisqlGetParserRootNode(), &context);
-    sleep(1);
+    
 
     // clean memory after parse
     MinisqlParserFinish();
