@@ -88,15 +88,15 @@ dberr_t ExecuteEngine::Execute(pSyntaxNode ast, ExecuteContext *context) {
   return DB_FAILED;
 }
 
-uint32_t StringToInt(char *s) {
+uint32_t StringToInt(const char *s) {
   uint32_t len = 0;
   for (int i = 0; s[i] != '\0'; ++i) {
-    len = len * 10 + s[i] - '0';
+    len = len * 10 + (s[i] - '0');
   }
   return len;
 }
 
-float StringToFloat(char *s) {
+float StringToFloat(const char *s) {
   float len = 0;
   int i = 0, j = 0;
   for (; s[i] != '.'; ++i) {
@@ -107,7 +107,7 @@ float StringToFloat(char *s) {
     len = len * 10 + s[i] - '0';
     j++;
   }
-  return len / (pow(10, j));
+  return len * 1.0 / (pow(10, j));
 }
 
 bool isFloat(string str) {
@@ -115,6 +115,38 @@ bool isFloat(string str) {
     if (str[i] == '.') return true;
   }
   return false;
+}
+
+int compare(const char *s,const char *t){
+  int i = 0;
+  int flag = 0;
+  while(s[i]!='\0'){
+    if(s[i] == '.'){
+      flag = 1;
+      break;
+    }else if(s[i]<'0' || s[i] > '9'){
+      flag = 2;
+      break;
+    }
+    i++;
+  }
+  if(flag == 0){
+    uint32_t l = 0;
+    for (int i = 0; s[i] != '\0'; ++i) {
+      l = l * 10 + (s[i] - '0');
+    }
+    uint32_t r = StringToInt((char *)t);
+    if(l > r) return 1;
+    if(strcmp(s,t) == 0) return 0;
+    else return -1;
+  }else if(flag == 1){
+    float l = StringToFloat((char *)s);
+    float r = StringToFloat((char *)t);
+    if(l-r>0) return 1;
+    else if(l-r==0) return 0;
+    else if(l-r<0) return -1;
+  }else return strcmp(s,t);
+  return 0;
 }
 
 bool DFS(pSyntaxNode ast, TableIterator &iter, Schema *schema) {
@@ -132,27 +164,27 @@ bool DFS(pSyntaxNode ast, TableIterator &iter, Schema *schema) {
     char *item = ast->val_;
     if (strcmp(item, "=") == 0 && strcmp(l_value, r_value) == 0)
       return true;
-    else if (strcmp(item, ">") == 0 && strcmp(l_value, r_value) > 0)
+    else if (strcmp(item, ">") == 0 && compare(l_value, r_value) > 0)
       return true;
-    else if (strcmp(item, ">=") == 0 && strcmp(l_value, r_value) >= 0)
+    else if (strcmp(item, ">=") == 0 && compare(l_value, r_value) >= 0)
       return true;
-    else if (strcmp(item, "<=") == 0 && strcmp(l_value, r_value) <= 0)
+    else if (strcmp(item, "<=") == 0 && compare(l_value, r_value) <= 0)
       return true;
-    else if (strcmp(item, "<") == 0 && strcmp(l_value, r_value) < 0)
+    else if (strcmp(item, "<") == 0 && compare(l_value, r_value) < 0)
       return true;
     else if (strcmp(item, "<>") == 0 && strcmp(l_value, r_value) != 0)
       return true;
-    else if (strcmp(item, "is") == 0 && strcmp(l_value,r_value) == 0)
+    else if (strcmp(item, "is") == 0 && compare(l_value,r_value) == 0)
       return true;
-    else if (strcmp(item ,"is not") == 0 && strcmp(l_value,r_value)!=0)
+    else if (strcmp(item ,"is not") == 0 && compare(l_value,r_value)!=0)
       return true;
 
     return false;
   } else if (ast->type_ == kNodeConnector) {
     char *connector = ast->val_;
-    if (strcmp(connector, "and") && DFS(ast->child_, iter, schema) && DFS(ast->child_->next_, iter, schema))
+    if (strcmp(connector, "and") == 0 && DFS(ast->child_, iter, schema) && DFS(ast->child_->next_, iter, schema))
       return true;
-    else if (strcmp(connector, "or") && (DFS(ast->child_, iter, schema) || DFS(ast->child_->next_, iter, schema)))
+    else if (strcmp(connector, "or") == 0 && (DFS(ast->child_, iter, schema) || DFS(ast->child_->next_, iter, schema)))
       return true;
 
     return false;
@@ -634,13 +666,13 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
               vector<Field *> field_;
               field_ = row.GetFields();
               if (strcmp(field_[id]->GetData(), val) <= 0) {
-                for (auto field : field_) {
+                /*for (auto field : field_) {
                   cout << "|";
                   cout << left << setfill(' ')<<setw(20) << field->GetData();
                 }
                 cout << "|"<<endl;
                 cout << left << setfill('-') << setw(size_table) << '-';
-                cout << endl;
+                cout << endl;*/
               } else break;
             }
           } else if (strcmp(compare, "<>") == 0) {
@@ -856,8 +888,7 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     //没索引
 
     // column name
-    // tmp = ast->child_->next_;   // tablename
-    // tmp = tmp->next_;   // conditions
+    tmp = ast->next_->next_->child_;
     // tmp = tmp->child_;  // Operator or connector
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
@@ -1079,9 +1110,9 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
           }
           Row delete_row(fields_1);
           Row insert_row(fields_2);
-          RowId tmp(iter->GetRowId());
-          idx->RemoveEntry(delete_row, tmp, NULL);
-          idx->InsertEntry(insert_row, tmp, NULL);
+          RowId tmp_(iter->GetRowId());
+          idx->RemoveEntry(delete_row, tmp_, NULL);
+          idx->InsertEntry(insert_row, tmp_, NULL);
       }
     
       std::vector<Field> fields_;

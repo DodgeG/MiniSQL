@@ -49,7 +49,13 @@ const char *Type::GetData(const Field &val) const {
     str.pop_back();
     return str.c_str();
   }else{
-    return val.value_.chars_;
+    std::string str;
+    int i = 0;
+    while(val.value_.chars_[i]!='\0'){
+      str = str + val.value_.chars_[i];
+      i++;
+    }
+    return str.c_str();
   }
   return nullptr;
 }

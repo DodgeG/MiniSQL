@@ -258,11 +258,11 @@ dberr_t CatalogManager::CreateIndex(const std::string &table_name, const string 
     new_index.insert({index_name,new_index_id});
     index_names_.insert({table_name,new_index});
   }else{
-    auto index = iter->second;
-    if(index.count(index_name) != 0)
+    //auto index = iter->second;
+    if((iter->second).count(index_name) != 0)
       return DB_INDEX_ALREADY_EXIST;
     new_index_id = catalog_meta_->GetNextIndexId();
-    index.insert({index_name,new_index_id});
+    (iter->second).insert({index_name,new_index_id});
   }
 
   // new_page
@@ -311,10 +311,10 @@ dberr_t CatalogManager::DropIndex(const string &table_name, const string &index_
   auto iter = index_names_.find(table_name);
   int count = (iter->second).count(index_name);
   if (count == 0)
-    return DB_TABLE_NOT_EXIST;
+    return DB_INDEX_NOT_FOUND;
   else {
     index_id_t deleted = ((iter->second).find(index_name))->second;
-    if (count == 1)
+    if ((iter->second).size() == 1)
       index_names_.erase(table_name);
     else
       (iter->second).erase(index_name);
