@@ -238,6 +238,7 @@ dberr_t ExecuteEngine::ExecuteShowTables(pSyntaxNode ast, ExecuteContext *contex
     return DB_FAILED;
   } else {
     printf("[TITLE] Tables_in_%s\n", current_db_.c_str());
+    cout << tables.size() << endl;
     for (auto iter = tables.begin(); iter != tables.end(); ++iter) {
       printf("[TABLE] %s\n", (*iter)->GetTableName().c_str());
     }
@@ -279,8 +280,6 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
   vector<string> index_column;
 
   while (tmp != nullptr && tmp->type_!=kNodeColumnList) {
-
-
     nullable = true;
     unique = false;
     if (tmp->val_ != NULL) {
@@ -535,8 +534,9 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
 
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
+      int j = 0;
       for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-        int j = 0;
+        
         if (schema->GetColumn(i)->GetName() == column_name[j]) {
           cout << "|";
           cout << left << setfill(' ')<<setw(20) << (*iter).GetField(i)->GetData();
@@ -856,7 +856,9 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     //没索引
 
     // column name
-
+    // tmp = ast->child_->next_;   // tablename
+    // tmp = tmp->next_;   // conditions
+    // tmp = tmp->child_;  // Operator or connector
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
       if (DFS(tmp, iter, schema)) {
@@ -873,6 +875,8 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
         cout << endl;
       }
     }
+    
+
     return DB_SUCCESS;
   }
   return DB_FAILED;
@@ -1083,7 +1087,7 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
       std::vector<Field> fields_;
   
       for (uint32_t i=0; i<schema->GetColumnCount();i++){
-        cout << schema->GetColumnCount() << endl;
+        //cout << schema->GetColumnCount() << endl;
         if (map_.count(schema->GetColumn(i)->GetName())) {
           fields_.push_back(*map_[schema->GetColumn(i)->GetName()]);
         }
