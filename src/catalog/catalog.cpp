@@ -138,7 +138,7 @@ dberr_t CatalogManager::CreateTable(const string &table_name, TableSchema *schem
   // table name id
   table_id_t new_table_id = catalog_meta_->GetNextTableId();
   // table_names_
-  table_names_.emplace(table_name, new_table_id);
+  table_names_.insert({table_name, new_table_id});
 
   // table
   page_id_t new_page_id;  //新页
@@ -151,13 +151,13 @@ dberr_t CatalogManager::CreateTable(const string &table_name, TableSchema *schem
   TableHeap *new_table_heap = TableHeap::Create(buffer_pool_manager_, schema, txn, log_manager_, lock_manager_, heap_);
   table_info->Init(new_table_metadata, new_table_heap);
   // tables_
-  tables_.emplace(pair<table_id_t, TableInfo *>(new_table_id, table_info));
+  tables_.insert({new_table_id, table_info});
 
   // table_meta_data   catalog_meta序列化
   //数据字节流的位置
   char *buf = reinterpret_cast<char *>(new_page->GetData());
   new_table_metadata->SerializeTo(buf);
-  catalog_meta_->table_meta_pages_.emplace(new_table_id, new_page_id);
+  catalog_meta_->table_meta_pages_.insert({new_table_id, new_page_id});
   catalog_meta_->SerializeTo(buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID)->GetData());
 
   buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);
@@ -195,7 +195,7 @@ dberr_t CatalogManager::GetTables(vector<TableInfo *> &tables) const {
     return DB_FAILED;
   }
   for (auto table : tables_) {
-    tables.emplace_back(table.second);
+    tables.push_back(table.second);
   }
   return DB_SUCCESS;
 }
@@ -281,10 +281,10 @@ dberr_t CatalogManager::CreateIndex(const std::string &table_name, const string 
   // init
   index_info->Init(new_index_meta, table_info, buffer_pool_manager_);
   // indexes_
-  indexes_.emplace(new_index_id, index_info);
+  indexes_.insert({new_index_id, index_info});
   //序列化
   new_index_meta->SerializeTo(reinterpret_cast<char *>(new_page->GetData()));
-  catalog_meta_->index_meta_pages_.emplace(new_index_id, new_page_id);
+  catalog_meta_->index_meta_pages_.insert({new_index_id, new_page_id});
   catalog_meta_->SerializeTo(buffer_pool_manager_->FetchPage(CATALOG_META_PAGE_ID)->GetData());
 
   buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);

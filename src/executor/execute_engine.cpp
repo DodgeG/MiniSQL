@@ -9,6 +9,8 @@
 #include "parser/syntax_tree_printer.h"
 #include "utils/tree_file_mgr.h"
 #include <set>
+#include <chrono>
+typedef std::chrono::high_resolution_clock Clock;
 
 extern "C" {
 int yyparse(void);
@@ -139,6 +141,10 @@ bool DFS(pSyntaxNode ast, TableIterator &iter, Schema *schema) {
     else if (strcmp(item, "<") == 0 && strcmp(l_value, r_value) < 0)
       return true;
     else if (strcmp(item, "<>") == 0 && strcmp(l_value, r_value) != 0)
+      return true;
+    else if (strcmp(item, "is") == 0 && strcmp(l_value,r_value) == 0)
+      return true;
+    else if (strcmp(item ,"is not") == 0 && strcmp(l_value,r_value)!=0)
       return true;
 
     return false;
@@ -321,8 +327,9 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
 
   TableSchema *schema = new TableSchema(columns);
   if (cata->CreateTable(table_name, schema, nullptr, table_info) == DB_SUCCESS) {
-    IndexInfo *index_info;
+
     for(auto column : index_column){
+      IndexInfo *index_info;
       vector<string> index_key;
       index_key.clear();
       index_key.push_back(column);
@@ -421,6 +428,7 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
     TableIterator iter = table_heap->Begin(nullptr);
     Index *index_ = index_info->GetIndex();
     std::vector<Field> field;
+    auto t1 = Clock::now();
     while (iter != table_heap->End()) {
       field.clear();
       for (auto ind : key_map) {
@@ -430,8 +438,10 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
       index_->InsertEntry(entry, iter->GetRowId(), nullptr);
       ++iter;
     }
+    auto t2 = Clock::now();
 
     printf("[INFO] Create index successfully!\n");
+    cout<<"\ntotal time:"<<std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count()/1e+6<<"ms\n";
     return DB_SUCCESS;
   }
 }
@@ -664,7 +674,6 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
               for (auto field : field_) {
                 cout << "|";
                 cout << left << setfill(' ')<<setw(20) << field->GetData();
-                cout << endl;
               }
               cout << "|"<<endl;
               cout << left << setfill('-') << setw(size_table) << '-';
@@ -847,12 +856,10 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     //没索引
 
     // column name
-    tmp = ast->child_->next_;   // tablename
-    tmp = tmp->next_;   // conditions
-    tmp = tmp->child_;  // Operator or connector
+
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
-      if (DFS(tmp->child_, iter, schema)) {
+      if (DFS(tmp, iter, schema)) {
         int j = 0;
         for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
           if (schema->GetColumn(i)->GetName() == column_name[j]) {
@@ -1167,9 +1174,14 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
 
   TreeFileManagers syntax_tree_file_mgr("syntax_tree_");
   [[maybe_unused]] uint32_t syntax_tree_id = 0;
+  double total_time = 0;
 
+  int count = 0;
   while (1) {
     stream.getline(cmd, 1025);
+    count++;
+    cout<<count<<endl;
+
     // read from buffer
     //cout << cmd << endl;
 
@@ -1201,7 +1213,10 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
     }
 
     ExecuteContext context;
+    auto t1 = Clock::now();
     Execute(MinisqlGetParserRootNode(), &context);
+    auto t2 = Clock::now();
+    total_time = total_time + std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
     //sleep(1);
 
     // clean memory after parse
@@ -1218,7 +1233,8 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
       break;
     }
   }
-  return DB_FAILED;
+  cout<<'\n'<<"total time:"<<total_time / 1e+6<<"ms\n";
+  return DB_SUCCESS;
 }
 
 dberr_t ExecuteEngine::ExecuteQuit(pSyntaxNode ast, ExecuteContext *context) {

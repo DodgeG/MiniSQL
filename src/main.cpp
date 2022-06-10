@@ -3,7 +3,7 @@
 #include "glog/logging.h"
 #include "parser/syntax_tree_printer.h"
 #include "utils/tree_file_mgr.h"
-#define ENABLE_PARSER_DEBUG 1
+#define ENABLE_PARSER_DEBUG 0
 
 extern "C" {
 int yyparse(void);
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 
     ExecuteContext context;
     engine.Execute(MinisqlGetParserRootNode(), &context);
-    sleep(1);
+    //sleep(1);
 
     // clean memory after parse
     MinisqlParserFinish();
