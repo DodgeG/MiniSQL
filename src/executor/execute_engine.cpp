@@ -668,13 +668,13 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
               vector<Field *> field_;
               field_ = row.GetFields();
               if (strcmp(field_[id]->GetData(), val) <= 0) {
-                /*for (auto field : field_) {
+                for (auto field : field_) {
                   cout << "|";
                   cout << left << setfill(' ')<<setw(20) << field->GetData();
                 }
                 cout << "|"<<endl;
                 cout << left << setfill('-') << setw(size_table) << '-';
-                cout << endl;*/
+                cout << endl;
               } else break;
             }
           } else if (strcmp(compare, "<>") == 0) {
@@ -968,14 +968,16 @@ dberr_t ExecuteEngine::ExecuteInsert(pSyntaxNode ast, ExecuteContext *context) {
       }
       Row row_index(fies);
       if (index_->InsertEntry(row_index, row->GetRowId(), nullptr) == DB_SUCCESS) {
-        printf("[INFO] Insert successfully!\n");
-        return DB_SUCCESS;
+        //printf("[INFO] Insert successfully!\n");
+        //return DB_SUCCESS;
       } else {
+        table_heap->MarkDelete(row->GetRowId(),nullptr);
         printf("[INFO] Insert failed!\n");
         return DB_FAILED;
       }
     }
   }
+  printf("[INFO] Insert successfully!\n");
   return DB_SUCCESS;
 }
 
@@ -1096,15 +1098,15 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
   if (tmp2 == NULL){// no conditionsiter++
   
     for (auto iter = table_heap->Begin(NULL); iter!=table_heap->End(); ++iter){
-      cout << "7777" << endl;
+      //cout << "7777" << endl;
       for (auto index : indexes){
           Index* idx = index->GetIndex();
-          std::vector<Field> fields_1;
+          //std::vector<Field> fields_1;
           std::vector<Field> fields_2;
           IndexMetadata * meta = index->GetMetadata();
           std::vector<uint32_t> key_map = meta->GetKeyMapping();
           for (auto id: key_map){
-            fields_1.push_back(*(iter->GetField(id)));
+            //fields_1.push_back(*(iter->GetField(id)));
             if(map_.count(schema->GetColumn(id)->GetName())){
               fields_2.push_back(*map_[schema->GetColumn(id)->GetName()]);
             }
@@ -1112,11 +1114,14 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
               fields_2.push_back(*(iter->GetField(id)));
             }
           }
-          Row delete_row(fields_1);
+          //Row delete_row(fields_1);
           Row insert_row(fields_2);
-          RowId tmp_(iter->GetRowId());
-          idx->RemoveEntry(delete_row, tmp_, NULL);
-          idx->InsertEntry(insert_row, tmp_, NULL);
+          RowId tmp(iter->GetRowId());
+          //idx->RemoveEntry(delete_row, tmp, NULL);
+          if(!idx->InsertEntry(insert_row, tmp, NULL)){
+            printf("[INFO] Update failed!\n");
+            return DB_FAILED;
+          }
       }
     
       std::vector<Field> fields_;
@@ -1153,12 +1158,12 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
       if (flag){
         for (auto index : indexes){
           Index* idx = index->GetIndex();
-          std::vector<Field> fields_1;
+          //std::vector<Field> fields_1;
           std::vector<Field> fields_2;
           IndexMetadata * meta = index->GetMetadata();
           std::vector<uint32_t> key_map = meta->GetKeyMapping();
           for (auto id: key_map){
-            fields_1.push_back(*(iter->GetField(id)));
+            //fields_1.push_back(*(iter->GetField(id)));
             if(map_.count(schema->GetColumn(id)->GetName())){
               fields_2.push_back(*map_[schema->GetColumn(id)->GetName()]);
             }
@@ -1166,11 +1171,14 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
               fields_2.push_back(*(iter->GetField(id)));
             }
           }
-          Row delete_row(fields_1);
+          //Row delete_row(fields_1);
           Row insert_row(fields_2);
           RowId tmp = iter->GetRowId();
-          idx->RemoveEntry(delete_row, tmp, NULL);
-          idx->InsertEntry(insert_row, tmp, NULL);
+          //idx->RemoveEntry(delete_row, tmp, NULL);
+          if(!idx->InsertEntry(insert_row, tmp, NULL)){
+            printf("[INFO] Update failed!\n");
+            return DB_FAILED;
+          }
       }
         std::vector<Field> fields_;
       

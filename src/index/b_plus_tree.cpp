@@ -23,9 +23,12 @@ BPLUSTREE_TYPE::BPlusTree(index_id_t index_id, BufferPoolManager *buffer_pool_ma
 
 INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::Destroy() {
-
-  
-  
+  while(!this->IsEmpty()){
+    KeyType key;
+    auto *leaf_page = FindLeafPage(key,true);
+    auto leaf = reinterpret_cast<LeafPage *>(leaf_page->GetData());
+    this->Remove(leaf->KeyAt(0),nullptr);
+  }
 }
 
 /*
