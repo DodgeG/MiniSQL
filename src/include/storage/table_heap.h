@@ -117,7 +117,7 @@ class TableHeap {
         first_page_id_(first_page_id),
         schema_(schema),
         log_manager_(log_manager),
-        lock_manager_(lock_manager) {}
+        lock_manager_(lock_manager) {ASSERT(first_page_id != INVALID_PAGE_ID, "TableHeap Failed: first_page_id can't be INVALID_PAGE_ID");}
 
  private:
   BufferPoolManager *buffer_pool_manager_;

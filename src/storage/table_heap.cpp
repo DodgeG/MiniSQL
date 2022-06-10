@@ -1,5 +1,6 @@
 #include "storage/table_heap.h"
 
+/*
 bool TableHeap::InsertTuple(Row &row, Transaction *txn) {
   page_id_t last_page_id;
   for (page_id_t page_id = first_page_id_; page_id != INVALID_PAGE_ID; ) {
@@ -16,13 +17,41 @@ bool TableHeap::InsertTuple(Row &row, Transaction *txn) {
   page_id_t new_page_id;
   auto new_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->NewPage(new_page_id));
   auto last_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(last_page_id));
-  new_page->Init(new_page_id, last_page_id, log_manager_, txn);
+  last_page->WLatch();
   last_page->SetNextPageId(new_page_id);
+  last_page->WUnlatch();
   new_page->WLatch();
+  new_page->Init(new_page_id, last_page_id, log_manager_, txn);
   bool status = new_page->InsertTuple(row, schema_, txn, lock_manager_, log_manager_);
   new_page->WUnlatch();
   buffer_pool_manager_->UnpinPage(new_page_id, true);
   buffer_pool_manager_->UnpinPage(last_page_id, true);
+  return status;
+}
+*/
+
+bool TableHeap::InsertTuple(Row &row, Transaction *txn) {
+  auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(first_page_id_));
+  page->WLatch();
+  bool status = page->InsertTuple(row, schema_, txn, lock_manager_, log_manager_);
+  page->WUnlatch();
+  if (status) {
+    buffer_pool_manager_->UnpinPage(first_page_id_, true);
+    return true;
+  }
+  page_id_t new_page_id;
+  auto new_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->NewPage(new_page_id));
+  page->WLatch();
+  page->SetPrevPageId(new_page_id);
+  page->WUnlatch();
+  buffer_pool_manager_->UnpinPage(first_page_id_, true);
+  new_page->WLatch();
+  new_page->Init(new_page_id, INVALID_PAGE_ID, log_manager_, txn);
+  new_page->SetNextPageId(first_page_id_);
+  status = new_page->InsertTuple(row, schema_, txn, lock_manager_, log_manager_);
+  new_page->WUnlatch();
+  buffer_pool_manager_->UnpinPage(new_page_id, true);
+  first_page_id_ = new_page_id;
   return status;
 }
 
