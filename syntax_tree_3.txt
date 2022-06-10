@@ -1,5 +1,5 @@
 digraph G{ 
-SYNTAX_NODE_1[label="kNodeDropTable(1,13)\nid(1)"];
-SYNTAX_NODE_0[label="kNodeIdentifier(1,13)\nid(0),val(t1)"];
+SYNTAX_NODE_1[label="kNodeExecFile(1,38)\nid(1)"];
+SYNTAX_NODE_0[label="kNodeString(1,38)\nid(0),val(/mnt/e/minisql/src/test.txt)"];
 SYNTAX_NODE_1  ->  SYNTAX_NODE_0;
 }
