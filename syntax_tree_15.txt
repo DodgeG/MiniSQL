@@ -2,9 +2,9 @@ digraph G{
 SYNTAX_NODE_4[label="kNodeInsert(1,54)\nid(4)"];
 SYNTAX_NODE_0[label="kNodeIdentifier(1,19)\nid(0),val(account)"];
 SYNTAX_NODE_5[label="kNodeColumnValues(1,54)\nid(5)"];
-SYNTAX_NODE_1[label="kNodeNumber(1,35)\nid(1),val(12500010)"];
-SYNTAX_NODE_2[label="kNodeString(1,45)\nid(2),val(name10)"];
-SYNTAX_NODE_3[label="kNodeNumber(1,53)\nid(3),val(742.09)"];
+SYNTAX_NODE_1[label="kNodeNumber(1,35)\nid(1),val(12500012)"];
+SYNTAX_NODE_2[label="kNodeString(1,45)\nid(2),val(name12)"];
+SYNTAX_NODE_3[label="kNodeNumber(1,53)\nid(3),val(595.48)"];
 SYNTAX_NODE_2  ->  SYNTAX_NODE_3;
 {rank=same; SYNTAX_NODE_2,SYNTAX_NODE_3};
 SYNTAX_NODE_1  ->  SYNTAX_NODE_2;

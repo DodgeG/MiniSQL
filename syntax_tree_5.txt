@@ -1,4 +1,5 @@
 digraph G{ 
+<<<<<<< HEAD
 SYNTAX_NODE_15[label="kNodeSelect(1,91)\nid(15)"];
 SYNTAX_NODE_2[label="kNodeColumnList(1,22)\nid(2),val(select columns)"];
 SYNTAX_NODE_0[label="kNodeIdentifier(1,9)\nid(0),val(id)"];
@@ -40,4 +41,20 @@ SYNTAX_NODE_3  ->  SYNTAX_NODE_16;
 SYNTAX_NODE_2  ->  SYNTAX_NODE_3;
 {rank=same; SYNTAX_NODE_2,SYNTAX_NODE_3};
 SYNTAX_NODE_15  ->  SYNTAX_NODE_2;
+=======
+SYNTAX_NODE_4[label="kNodeInsert(1,53)\nid(4)"];
+SYNTAX_NODE_0[label="kNodeIdentifier(1,19)\nid(0),val(account)"];
+SYNTAX_NODE_5[label="kNodeColumnValues(1,53)\nid(5)"];
+SYNTAX_NODE_1[label="kNodeNumber(1,35)\nid(1),val(12500002)"];
+SYNTAX_NODE_2[label="kNodeString(1,44)\nid(2),val(name2)"];
+SYNTAX_NODE_3[label="kNodeNumber(1,52)\nid(3),val(981.86)"];
+SYNTAX_NODE_2  ->  SYNTAX_NODE_3;
+{rank=same; SYNTAX_NODE_2,SYNTAX_NODE_3};
+SYNTAX_NODE_1  ->  SYNTAX_NODE_2;
+{rank=same; SYNTAX_NODE_1,SYNTAX_NODE_2};
+SYNTAX_NODE_5  ->  SYNTAX_NODE_1;
+SYNTAX_NODE_0  ->  SYNTAX_NODE_5;
+{rank=same; SYNTAX_NODE_0,SYNTAX_NODE_5};
+SYNTAX_NODE_4  ->  SYNTAX_NODE_0;
+>>>>>>> 6d4543db88bde25cca60929115de686f704756fa
 }

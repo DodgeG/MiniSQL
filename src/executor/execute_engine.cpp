@@ -566,14 +566,16 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
 
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
-      int j = 0;
-      for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-        
-        if (schema->GetColumn(i)->GetName() == column_name[j]) {
+      
+      for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {   
+        for (auto name : column_name){
+          if (schema->GetColumn(i)->GetName() == name) {
           cout << "|";
           cout << left << setfill(' ')<<setw(20) << (*iter).GetField(i)->GetData();
-          j++;
+          
         }
+        }    
+        
       }
       cout << "|" << endl;
       cout << left << setfill('-') << setw(size_table) << '-';
@@ -893,13 +895,14 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
       if (DFS(tmp, iter, schema)) {
-        int j = 0;
+        
         for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-          if (schema->GetColumn(i)->GetName() == column_name[j]) {
-            cout << "|";
-            cout << left << setfill(' ')<<setw(20) << (*iter).GetField(i)->GetData();
-            j++;
-          }
+          for (auto name : column_name){
+          if (schema->GetColumn(i)->GetName() == name) {
+          cout << "|";
+          cout << left << setfill(' ')<<setw(20) << (*iter).GetField(i)->GetData();
+        }
+        } 
         }
         cout << "|" << endl;
         cout << left << setfill('-') << setw(size_table) << '-';
@@ -1093,6 +1096,7 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
   if (tmp2 == NULL){// no conditionsiter++
   
     for (auto iter = table_heap->Begin(NULL); iter!=table_heap->End(); ++iter){
+      cout << "7777" << endl;
       for (auto index : indexes){
           Index* idx = index->GetIndex();
           std::vector<Field> fields_1;
@@ -1164,7 +1168,7 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
           }
           Row delete_row(fields_1);
           Row insert_row(fields_2);
-          RowId tmp;
+          RowId tmp = iter->GetRowId();
           idx->RemoveEntry(delete_row, tmp, NULL);
           idx->InsertEntry(insert_row, tmp, NULL);
       }
