@@ -144,9 +144,9 @@ bool DFS(pSyntaxNode ast, TableIterator &iter, Schema *schema) {
     return false;
   } else if (ast->type_ == kNodeConnector) {
     char *connector = ast->val_;
-    if (strcmp(connector, "and") && DFS(ast->child_, iter, schema) && DFS(ast->child_->next_, iter, schema))
+    if (strcmp(connector, "and")==0 && DFS(ast->child_, iter, schema) && DFS(ast->child_->next_, iter, schema))
       return true;
-    else if (strcmp(connector, "or") && (DFS(ast->child_, iter, schema) || DFS(ast->child_->next_, iter, schema)))
+    else if (strcmp(connector, "or")==0 && (DFS(ast->child_, iter, schema) || DFS(ast->child_->next_, iter, schema)))
       return true;
 
     return false;
@@ -524,14 +524,16 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
 
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
-      int j = 0;
-      for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-        
-        if (schema->GetColumn(i)->GetName() == column_name[j]) {
+      
+      for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {   
+        for (auto name : column_name){
+          if (schema->GetColumn(i)->GetName() == name) {
           cout << "|";
           cout << left << setfill(' ')<<setw(20) << (*iter).GetField(i)->GetData();
-          j++;
+          
         }
+        }    
+        
       }
       cout << "|" << endl;
       cout << left << setfill('-') << setw(size_table) << '-';
@@ -853,13 +855,14 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
     TableHeap *table_heap = table_info->GetTableHeap();
     for (TableIterator iter = table_heap->Begin(NULL); iter != table_heap->End(); ++iter) {
       if (DFS(tmp, iter, schema)) {
-        int j = 0;
+        
         for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-          if (schema->GetColumn(i)->GetName() == column_name[j]) {
-            cout << "|";
-            cout << left << setfill(' ')<<setw(20) << (*iter).GetField(i)->GetData();
-            j++;
-          }
+          for (auto name : column_name){
+          if (schema->GetColumn(i)->GetName() == name) {
+          cout << "|";
+          cout << left << setfill(' ')<<setw(20) << (*iter).GetField(i)->GetData();
+        }
+        } 
         }
         cout << "|" << endl;
         cout << left << setfill('-') << setw(size_table) << '-';
