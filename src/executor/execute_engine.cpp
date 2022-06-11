@@ -474,7 +474,7 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
     }
 
     printf("[INFO] Create index successfully!\n");
-    cout<<"\ntotal time:"<<total_time/1e+6<<"ms\n";
+    cerr<<"\ntotal time:"<<total_time/1e+6<<"ms\n";
     return DB_SUCCESS;
   }
 }
@@ -670,13 +670,15 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
               vector<Field *> field_;
               field_ = row.GetFields();
               if (strcmp(field_[id]->GetData(), val) <= 0) {
-                /*for (auto field : field_) {
+                for (auto field : field_) {
                   cout << "|";
                   cout << left << setfill(' ')<<setw(20) << field->GetData();
+                  /*for (auto x = field->GetData(); *x != '\0'; x++)
+                    printf("%d ", (int)*x);*/
                 }
                 cout << "|"<<endl;
                 cout << left << setfill('-') << setw(size_table) << '-';
-                cout << endl;*/
+                cout << endl;
               } else break;
             }
           } else if (strcmp(compare, "<>") == 0) {
@@ -1103,12 +1105,12 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
       //cout << "7777" << endl;
       for (auto index : indexes){
           Index* idx = index->GetIndex();
-          //std::vector<Field> fields_1;
+          std::vector<Field> fields_1;
           std::vector<Field> fields_2;
           IndexMetadata * meta = index->GetMetadata();
           std::vector<uint32_t> key_map = meta->GetKeyMapping();
           for (auto id: key_map){
-            //fields_1.push_back(*(iter->GetField(id)));
+            fields_1.push_back(*(iter->GetField(id)));
             if(map_.count(schema->GetColumn(id)->GetName())){
               fields_2.push_back(*map_[schema->GetColumn(id)->GetName()]);
             }
@@ -1116,14 +1118,11 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
               fields_2.push_back(*(iter->GetField(id)));
             }
           }
-          //Row delete_row(fields_1);
+          Row delete_row(fields_1);
           Row insert_row(fields_2);
           RowId tmp(iter->GetRowId());
-          //idx->RemoveEntry(delete_row, tmp, NULL);
-          if(!idx->InsertEntry(insert_row, tmp, NULL)){
-            printf("[INFO] Update failed!\n");
-            return DB_FAILED;
-          }
+          idx->RemoveEntry(delete_row, tmp, NULL);
+          idx->InsertEntry(insert_row, tmp, NULL);
       }
     
       std::vector<Field> fields_;
@@ -1160,12 +1159,12 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
       if (flag){
         for (auto index : indexes){
           Index* idx = index->GetIndex();
-          //std::vector<Field> fields_1;
+          std::vector<Field> fields_1;
           std::vector<Field> fields_2;
           IndexMetadata * meta = index->GetMetadata();
           std::vector<uint32_t> key_map = meta->GetKeyMapping();
           for (auto id: key_map){
-            //fields_1.push_back(*(iter->GetField(id)));
+            fields_1.push_back(*(iter->GetField(id)));
             if(map_.count(schema->GetColumn(id)->GetName())){
               fields_2.push_back(*map_[schema->GetColumn(id)->GetName()]);
             }
@@ -1173,14 +1172,11 @@ dberr_t ExecuteEngine::ExecuteUpdate(pSyntaxNode ast, ExecuteContext *context) {
               fields_2.push_back(*(iter->GetField(id)));
             }
           }
-          //Row delete_row(fields_1);
+          Row delete_row(fields_1);
           Row insert_row(fields_2);
           RowId tmp = iter->GetRowId();
-          //idx->RemoveEntry(delete_row, tmp, NULL);
-          if(!idx->InsertEntry(insert_row, tmp, NULL)){
-            printf("[INFO] Update failed!\n");
-            return DB_FAILED;
-          }
+          idx->RemoveEntry(delete_row, tmp, NULL);
+          idx->InsertEntry(insert_row, tmp, NULL);
       }
         std::vector<Field> fields_;
       
@@ -1282,7 +1278,7 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
       break;
     }
   }
-  cout<<'\n'<<"total time:"<<total_time / 1e+6<<"ms\n";
+  cerr<<'\n'<<"total time:"<<total_time / 1e+6<<"ms\n";
   return DB_SUCCESS;
 }
 

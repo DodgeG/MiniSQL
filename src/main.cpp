@@ -20,7 +20,8 @@ void InitGoogleLog(char *argv) {
 
 void InputCommand(char *input, const int len) {
   memset(input, 0, len);
-  printf("minisql > ");
+  std::cerr << "minisql > ";
+  // printf("minisql > ");
   int i = 0;
   char ch;
   while ((ch = getchar()) != ';') {
