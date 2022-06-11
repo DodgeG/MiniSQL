@@ -15,6 +15,6 @@ insert into account values(12500013, "name13", 775.71);
 insert into account values(12500014, "name14", 646.5);
 insert into account values(12500015, "name15", 276.52);
 insert into account values(12500016, "name16", 269.96);
-insert into account values(12500017, "name17", 72.70);
+insert into account values(12500017, "name17", 72.70);select name,balance from account where id>=12500004 and balance > 500.0 or id = 12500008;
 insert into account values(12500018, "name18", 622.78);
 insert into account values(12500019, "name19", 131.93);
