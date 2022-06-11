@@ -459,20 +459,22 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
     TableIterator iter = table_heap->Begin(nullptr);
     Index *index_ = index_info->GetIndex();
     std::vector<Field> field;
-    auto t1 = Clock::now();
+    double total_time = 0;
     while (iter != table_heap->End()) {
       field.clear();
       for (auto ind : key_map) {
         field.push_back(*(iter->GetField(ind)));
       }
       Row entry(field);
+      auto t1 = Clock::now();
       index_->InsertEntry(entry, iter->GetRowId(), nullptr);
+      auto t2 = Clock::now();
+      total_time = total_time + std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
       ++iter;
     }
-    auto t2 = Clock::now();
 
     printf("[INFO] Create index successfully!\n");
-    cout<<"\ntotal time:"<<std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count()/1e+6<<"ms\n";
+    cout<<"\ntotal time:"<<total_time/1e+6<<"ms\n";
     return DB_SUCCESS;
   }
 }
@@ -668,13 +670,13 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
               vector<Field *> field_;
               field_ = row.GetFields();
               if (strcmp(field_[id]->GetData(), val) <= 0) {
-                for (auto field : field_) {
+                /*for (auto field : field_) {
                   cout << "|";
                   cout << left << setfill(' ')<<setw(20) << field->GetData();
                 }
                 cout << "|"<<endl;
                 cout << left << setfill('-') << setw(size_table) << '-';
-                cout << endl;
+                cout << endl;*/
               } else break;
             }
           } else if (strcmp(compare, "<>") == 0) {
