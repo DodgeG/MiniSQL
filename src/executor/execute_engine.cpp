@@ -472,7 +472,7 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
     auto t2 = Clock::now();
 
     printf("[INFO] Create index successfully!\n");
-    cout<<"\ntotal time:"<<std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count()/1e+6<<"ms\n";
+    cerr<<"\ntotal time:"<<std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count()/1e+6<<"ms\n";
     return DB_SUCCESS;
   }
 }
@@ -671,6 +671,8 @@ dberr_t ExecuteEngine::ExecuteSelect(pSyntaxNode ast, ExecuteContext *context) {
                 for (auto field : field_) {
                   cout << "|";
                   cout << left << setfill(' ')<<setw(20) << field->GetData();
+                  for (auto x = field->GetData(); *x != '\0'; x++)
+                    printf("%d ", (int)*x);
                 }
                 cout << "|"<<endl;
                 cout << left << setfill('-') << setw(size_table) << '-';
@@ -1280,7 +1282,7 @@ dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context)
       break;
     }
   }
-  cout<<'\n'<<"total time:"<<total_time / 1e+6<<"ms\n";
+  cerr<<'\n'<<"total time:"<<total_time / 1e+6<<"ms\n";
   return DB_SUCCESS;
 }
 
