@@ -1,55 +1,106 @@
 # MiniSQL
 
+## 项目简介
 
-本框架参考CMU-15445 BusTub框架进行改写，在保留了缓冲池、索引、记录模块的一些核心设计理念的基础上，做了一些修改和扩展，使之兼容于原MiniSQL实验指导的要求。
-以下列出了改动/扩展较大的几个地方：
-- 对Disk Manager模块进行改动，扩展了位图页、磁盘文件元数据页用于支持持久化数据页分配回收状态；
-- 在Record Manager, Index Manager, Catalog Manager等模块中，通过对内存对象的序列化和反序列化来持久化数据；
-- 对Record Manager层的一些数据结构（`Row`、`Field`、`Schema`、`Column`等）和实现进行重构；
-- 对Catalog Manager层进行重构，支持持久化并为Executor层提供接口调用;
-- 扩展了Parser层，Parser层支持输出语法树供Executor层调用；
+MiniSQL 是基于 CMU-15445 BusTub 思路改造的课程数据库系统实现，面向“从存储到执行”的完整链路实践。项目不仅实现了基础 SQL 解析与执行，还在页管理、索引、记录管理和系统目录等核心模块上做了工程化扩展。
 
-此外还涉及到很多零碎的改动，包括源代码中部分模块代码的调整，测试代码的修改，性能上的优化等，在此不做赘述。
+项目重点在于把课堂中的数据库核心概念（页、缓冲池、B+ 树、目录与执行器）落地成可编译、可测试、可交互运行的系统原型。
 
+## 项目架构
 
-注意：为了避免代码抄袭，请不要将自己的代码发布到任何公共平台中。
+系统可分为五层：
 
-### 编译&开发环境
-- Apple clang version: 11.0+ (MacOS)，使用`gcc --version`和`g++ --version`查看
-- gcc & g++ : 8.0+ (Linux)，使用`gcc --version`和`g++ --version`查看
-- cmake: 3.20+ (Both)，使用`cmake --version`查看
-- gdb: 7.0+ (Optional)，使用`gdb --version`查看
-- flex & bison (暂时不需要安装，但如果需要对SQL编译器的语法进行修改，需要安装）
-- llvm-symbolizer (暂时不需要安装)
-    - in mac os `brew install llvm`, then set path and env variables.
-    - in centos `yum install devtoolset-8-libasan-devel libasan`
-    - https://www.jetbrains.com/help/clion/google-sanitizers.html#AsanChapter
-    - https://www.jianshu.com/p/e4cbcd764783
+- Parser 层
+  - SQL 词法/语法分析
+  - 语法树构建
+- Executor 层
+  - 按语法树调度具体执行逻辑
+- Catalog 层
+  - 维护表结构、索引等元数据，并支持持久化
+- Storage 层
+  - Record/Table 管理
+  - Buffer Pool、Disk Manager、Page 读写
+- Index 层
+  - B+ 树索引结构与迭代器
 
-### 构建
-#### Windows
-目前该代码暂不支持在Windows平台上的编译。但在Win10及以上的系统中，可以通过安装WSL（Windows的Linux子系统）来进行
-开发和构建。WSL请选择Ubuntu子系统（推荐Ubuntu20及以上）。如果你使用Clion作为IDE，可以在Clion中配置WSL从而进行调试，具体请参考
-[Clion with WSL](https://blog.jetbrains.com/clion/2018/01/clion-and-linux-toolchain-on-windows-are-now-friends/)
+典型执行流程：
 
-#### MacOS & Linux & WSL
-基本构建命令
+1. 命令行输入 SQL
+2. Parser 生成语法树
+3. Executor 根据语法树执行操作
+4. Catalog/Storage/Index 协作完成数据读写
+5. 返回执行结果
+
+## 项目特性
+
+- 扩展 Disk Manager，支持位图页与元数据页的持久化管理
+- Record / Index / Catalog 模块支持对象序列化与反序列化
+- 重构 `Row`、`Field`、`Schema`、`Column` 等核心数据结构
+- Catalog 模块支持持久化并为执行层提供统一接口
+- Parser 可输出语法树供执行器使用
+- 提供覆盖 Buffer、Index、Catalog、Record、Storage 的测试用例
+
+## 目录结构
+
+- `src/`: 主体源码（buffer/index/record/catalog/parser/executor/storage 等）
+- `test/`: 单元测试
+- `thirdparty/`: 第三方依赖（gtest/glog）
+- `Report.md`: 课程报告
+
+## 开发环境
+
+- macOS: Apple clang 11.0+
+- Linux: gcc / g++ 8.0+
+- cmake 3.20+
+- 可选: gdb、flex、bison
+
+## 构建
+
 ```bash
 mkdir build
 cd build
 cmake ..
 make -j
 ```
-若不涉及到`CMakeLists`相关文件的变动且没有新增或删除`.cpp`代码（通俗来说，就是只是对现有代码做了修改）
-则无需重新执行`cmake..`命令，直接执行`make -j`编译即可。
 
-默认以`debug`模式进行编译，如果你需要使用`release`模式进行编译：
+构建产物说明：
+
+- `build/bin/main`: MiniSQL 交互式执行程序
+- `build/test/minisql_test`: 测试程序
+
+Release 构建：
+
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Release ..
+make -j
 ```
 
-### 测试
-在构建后，默认会在`build/test`目录下生成`minisql_test`的可执行文件，通过`./minisql_test`即可运行所有测试。
+## 运行
 
-如果需要运行单个测试，例如，想要运行`lru_replacer_test.cpp`对应的测试文件，可以通过`make lru_replacer_test`
-命令进行构建。
+进入 `build` 目录后执行：
+
+```bash
+./bin/main
+```
+
+程序会进入 `minisql >` 交互提示符。SQL 语句以分号 `;` 结束，`quit;` 可退出。
+
+## 测试
+
+运行全部测试：
+
+```bash
+./test/minisql_test
+```
+
+构建并运行单个测试（示例）：
+
+```bash
+make lru_replacer_test
+./test/buffer/lru_replacer_test
+```
+
+## 备注
+
+- Windows 建议通过 WSL（Ubuntu）进行构建与调试。
+- 该仓库为课程学习用途。
